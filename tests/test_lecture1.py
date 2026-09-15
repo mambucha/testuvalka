@@ -69,28 +69,27 @@ def test_equivalent_answer_forms_are_accepted():
     for form in ["13", "26/2", "13.0", "39/3"]:
         assert engine.grade(qi, {"d": form})["score"] == 1.0, form
 
+    # Звичайні дроби (приклади користувача): 54/5 = 10.8, а -21/3 = -7.
+    qf = engine.Question(
+        key="t",
+        statement="",
+        parts=[engine.Part("a", "a", sp.Rational(54, 5)), engine.Part("b", "b", -7)],
+    )
+    for a_form in ["54/5", "108/10", "10.8", "10,8"]:
+        assert engine.grade(qf, {"a": a_form, "b": "-21/3"})["score"] == 2.0, a_form
 
-def test_inverse_2x2_fractional_entry_accepts_decimal():
-    """На реальному шаблоні: якщо елемент оберненої дробовий, десятковий запис
-    теж зараховується."""
-    # Знайдемо екземпляр inverse_2x2 із дробовим елементом (|Δ|=2).
-    q = None
-    for attempt in range(60):
-        cand = engine.build("inverse_2x2", SECRET, f"s|{attempt}", "t", 1, 0)
-        if any(p.answer.q != 1 for p in cand.parts if hasattr(p.answer, "q")):
-            q = cand
-            break
-    assert q is not None, "не знайдено дробового прикладу — малоймовірно"
 
-    submitted = {}
-    for p in q.parts:
-        val = p.answer
-        if hasattr(val, "q") and val.q == 2:  # половинка -> подаємо десятковим
-            submitted[p.key] = str(float(val))  # напр. "1.5"
-        else:
-            submitted[p.key] = str(val)
-    result = engine.grade(q, submitted)
-    assert result["score"] == result["max"], (submitted, result)
+def test_inverse_2x2_answers_are_integers():
+    """Обернена 2×2 тепер завжди з |Δ|=1 -> усі відповіді цілі (зручні числа)."""
+    for attempt in range(30):
+        q = engine.build("inverse_2x2", SECRET, f"s|{attempt}", "t", 1, 0)
+        for p in q.parts:
+            # ціле: або Python int, або sympy Integer (.q == 1)
+            assert isinstance(p.answer, int) or getattr(p.answer, "q", 1) == 1, (
+                attempt,
+                p.key,
+                p.answer,
+            )
 
 
 def _load_ppq_test(tmp_path, keys, count):

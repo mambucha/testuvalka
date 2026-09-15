@@ -174,10 +174,13 @@ def _cofactor_3x3(rng: random.Random) -> Question:
 
 @template("matrix_scalar_element")
 def _matrix_scalar_element(rng: random.Random) -> Question:
-    m = [[rng.randint(-6, 6) for _ in range(3)] for _ in range(3)]
-    k = rng.choice([-3, -2, 2, 3, 4])
-    i, j = rng.randint(1, 3), rng.randint(1, 3)
-    val = k * m[i - 1][j - 1]
+    while True:
+        m = [[rng.randint(-6, 6) for _ in range(3)] for _ in range(3)]
+        k = rng.choice([-3, -2, 2, 3, 4])
+        i, j = rng.randint(1, 3), rng.randint(1, 3)
+        val = k * m[i - 1][j - 1]
+        if val != 0:  # уникаємо плутанини з нульовою відповіддю
+            break
     return Question(
         key="matrix_scalar_element",
         statement=(
@@ -192,10 +195,13 @@ def _matrix_scalar_element(rng: random.Random) -> Question:
 
 @template("matrix_sum_element")
 def _matrix_sum_element(rng: random.Random) -> Question:
-    A = [[rng.randint(-6, 6) for _ in range(3)] for _ in range(3)]
-    B = [[rng.randint(-6, 6) for _ in range(3)] for _ in range(3)]
-    i, j = rng.randint(1, 3), rng.randint(1, 3)
-    val = A[i - 1][j - 1] + B[i - 1][j - 1]
+    while True:
+        A = [[rng.randint(-6, 6) for _ in range(3)] for _ in range(3)]
+        B = [[rng.randint(-6, 6) for _ in range(3)] for _ in range(3)]
+        i, j = rng.randint(1, 3), rng.randint(1, 3)
+        val = A[i - 1][j - 1] + B[i - 1][j - 1]
+        if val != 0:  # уникаємо плутанини з нульовою відповіддю
+            break
     return Question(
         key="matrix_sum_element",
         statement=(
@@ -357,13 +363,13 @@ def _determinant_property(rng: random.Random) -> Question:
 def _inverse_2x2(rng: random.Random) -> Question:
     """Обернена 2×2: Δ + чотири елементи A^{-1} (з перенесенням від Δ).
 
-    Тримаємо |Δ| ∈ {1, 2} — елементи виходять цілими або половинками (зручні
-    числа); будь-яку форму (напр. 3/2 чи 1.5) grader приймає як рівну.
+    Тримаємо |Δ| = 1 — тоді елементи оберненої ЦІЛІ (зручні числа). Дробові
+    відповіді grader теж приймає (напр. 3/2 чи 1.5), але тут їх свідомо уникаємо.
     """
     while True:
         a, b, c, d = (rng.randint(-5, 5) for _ in range(4))
         det = a * d - b * c
-        if det in (1, -1, 2, -2):
+        if det in (1, -1):
             break
     adj = {"b11": d, "b12": -b, "b21": -c, "b22": a}  # приєднана / транспонована
     inv = {key: sp.Rational(val, det) for key, val in adj.items()}
