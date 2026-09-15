@@ -43,7 +43,8 @@
         <input id="token" type="password" placeholder="TESTUVALKA_TEACHER_TOKEN" />
       </div>
       <button id="load">Показати</button>
-      <a id="csv" class="dl" href="#" style="display:none">⬇ Завантажити CSV (журнал)</a>
+      <a id="xlsx" class="dl" href="#" style="display:none">⬇ Завантажити Excel (.xlsx)</a>
+      <a id="csv" class="dl" href="#" style="display:none">CSV</a>
     </div>
     <div id="err" class="err"></div>
     <p class="muted" style="font-size:.82rem">
@@ -105,8 +106,12 @@ async function load(){
   $("tbl").style.display = rows.length ? "" : "none";
   if (!rows.length) $("err").textContent = "Спроб не знайдено.";
 
+  const q = `test_key=${encodeURIComponent(key)}&token=${encodeURIComponent(token)}`;
+  const xlsx = $("xlsx");
+  xlsx.href = `/api/teacher/results_xlsx?${q}`;
+  xlsx.style.display = "inline-block";
   const csv = $("csv");
-  csv.href = `/api/teacher/results?test_key=${encodeURIComponent(key)}&token=${encodeURIComponent(token)}`;
+  csv.href = `/api/teacher/results?${q}`;
   csv.style.display = "inline-block";
 }
 function fmt(x){ return (Math.round((x||0)*100)/100).toString(); }

@@ -156,6 +156,18 @@ def teacher_results(
     )
 
 
+@app.get("/api/teacher/results_xlsx")
+def teacher_results_xlsx(
+    test_key: str, db: Session = Depends(get_db), _: bool = Depends(require_teacher)
+):
+    data = teacher.results_xlsx(db, test_key)
+    return Response(
+        content=data,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="results_{test_key}.xlsx"'},
+    )
+
+
 @app.get("/api/teacher/anomalies")
 def teacher_anomalies(
     test_key: str, db: Session = Depends(get_db), _: bool = Depends(require_teacher)

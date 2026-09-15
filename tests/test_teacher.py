@@ -69,3 +69,15 @@ def test_disabled_when_no_token(client, monkeypatch):
     monkeypatch.setattr(main, "TEACHER_TOKEN", "")
     r = client.get("/api/teacher/results?test_key=demo", headers=H)
     assert r.status_code == 503
+
+
+def test_results_xlsx_download(client):
+    _finish_attempt_with_paste(client)
+    # без токена — заборонено
+    assert client.get("/api/teacher/results_xlsx?test_key=demo").status_code == 403
+    # з токеном — справжній .xlsx
+    r = client.get("/api/teacher/results_xlsx?test_key=demo", headers=H)
+    assert r.status_code == 200
+    assert "spreadsheetml" in r.headers["content-type"]
+    assert r.content[:2] == b"PK"  # xlsx — це zip-архів
+    assert len(r.content) > 200

@@ -72,6 +72,38 @@ def results_csv(db: Session, test_key: str) -> str:
     return "﻿" + buf.getvalue()
 
 
+# Українські заголовки для Excel-журналу (у тому ж порядку, що RESULT_COLS).
+_XLSX_HEADERS = [
+    "Група", "Прізвище та ім'я", "Тест", "Спроба", "Статус",
+    "Бал", "Максимум", "Відсоток", "Розпочато", "Завершено",
+]
+
+
+def results_xlsx(db: Session, test_key: str) -> bytes:
+    """Журнал оцінок як справжній .xlsx — відкривається в Excel одразу в колонки
+    (без проблем із роздільником, на відміну від CSV в українській локалі)."""
+    from openpyxl import Workbook  # ліниво: залежність потрібна лише тут
+    from openpyxl.styles import Font
+    from openpyxl.utils import get_column_letter
+
+    rows = result_rows(db, test_key)
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Журнал"
+    ws.append(_XLSX_HEADERS)
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+    for r in rows:
+        ws.append([r[k] for k in RESULT_COLS])
+    ws.freeze_panes = "A2"  # шапка лишається зверху при прокрутці
+    for i, width in enumerate([14, 26, 14, 8, 10, 8, 10, 10, 20, 20], start=1):
+        ws.column_dimensions[get_column_letter(i)].width = width
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
 def anomalies(db: Session, test_key: str) -> list[dict]:
     test = _test_or_404(db, test_key)
     out = []
