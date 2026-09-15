@@ -13,3 +13,13 @@ def test_api_routes_take_priority_over_static(client):
     r = client.get("/api/attempt/999999/current")
     assert r.status_code == 404
     assert r.json().get("detail")  # JSON від застосунку, не сторінка
+
+
+def test_submit_button_is_wired(client):
+    """Регрес: кнопка «Відповісти» мусить мати обробник кліку — інакше клік по
+    ній нічого не робить (submit спрацьовував лише по Enter)."""
+    html = client.get("/").text
+    assert 'id="btn-submit"' in html
+    assert '"btn-submit").addEventListener("click"' in html
+    # І кнопка входу теж має бути прив'язана.
+    assert '"btn-start").addEventListener("click"' in html

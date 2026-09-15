@@ -303,6 +303,7 @@ function init(){
 
   $("btn-start").addEventListener("click", doStart);
   $("in-group").addEventListener("keydown", (e)=>{ if(e.key==="Enter") doStart(); });
+  $("btn-submit").addEventListener("click", submit);
 
   // Відновлення сесії після перезавантаження.
   const sess = state.testKey ? loadSession(state.testKey) : null;
