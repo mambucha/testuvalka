@@ -32,18 +32,16 @@
   question_count: 10
   points_per_question: 0.5
   bank:
-    - det_2x2
-    - det_3x3_sarrus
-    - det_triangular
-    - minor_3x3
-    - cofactor_3x3
-    - expansion_by_row       # розклад за рядком
-    - determinant_property   # властивості визначника
-    - matrix_scalar_element
-    - matrix_sum_element
-    - inverse_2x2            # обернена матриця 2×2
-    - linear_system_2x2      # Крамер 2×2
-    - cramer_3x3
-    - gauss_3x3
+    - det_2x2                            # визначник 2×2
+    - det_3x3_sarrus                     # визначник 3×3 (Саррюс)
+    - det_triangular                     # визначник трикутної матриці
+    - determinant_property               # властивості визначника
+    - det_scalar_multiple                # властивість: Δ(cA) = c^n·Δ
+    - matrix_scalar_element              # елемент kA
+    - matrix_sum_element                 # елемент A+B
+    - matrix_transpose_element           # елемент транспонованої
+    - matrix_linear_combination_element  # елемент aA+bB
+    - linear_system_2x2                  # Крамер 2×2 (Δ -> x -> y)
+    - cramer_3x3                         # Крамер 3×3, ЧАСТКОВО (Δ + одна невідома)
   max_attempts: 2
   max_reissues: 2

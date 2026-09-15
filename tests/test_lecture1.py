@@ -17,16 +17,14 @@ LECTURE1_KEYS = [
     "det_2x2",
     "det_3x3_sarrus",
     "det_triangular",
-    "minor_3x3",
-    "cofactor_3x3",
-    "expansion_by_row",
     "determinant_property",
+    "det_scalar_multiple",
     "matrix_scalar_element",
     "matrix_sum_element",
-    "inverse_2x2",
+    "matrix_transpose_element",
+    "matrix_linear_combination_element",
     "linear_system_2x2",
     "cramer_3x3",
-    "gauss_3x3",
 ]
 
 
@@ -79,17 +77,26 @@ def test_equivalent_answer_forms_are_accepted():
         assert engine.grade(qf, {"a": a_form, "b": "-21/3"})["score"] == 2.0, a_form
 
 
-def test_inverse_2x2_answers_are_integers():
-    """Обернена 2×2 тепер завжди з |Δ|=1 -> усі відповіді цілі (зручні числа)."""
-    for attempt in range(30):
-        q = engine.build("inverse_2x2", SECRET, f"s|{attempt}", "t", 1, 0)
-        for p in q.parts:
-            # ціле: або Python int, або sympy Integer (.q == 1)
-            assert isinstance(p.answer, int) or getattr(p.answer, "q", 1) == 1, (
-                attempt,
-                p.key,
-                p.answer,
-            )
+def test_all_lecture1_answers_are_integers():
+    """Усі відповіді Лекції 1 мають бути цілими (зручні числа) для кількох
+    згенерованих варіантів кожного шаблону."""
+    for key in LECTURE1_KEYS:
+        for attempt in range(10):
+            q = engine.build(key, SECRET, f"s|{attempt}", "t", 1, 0)
+            for p in q.parts:
+                assert isinstance(p.answer, int) or getattr(p.answer, "q", 1) == 1, (
+                    key,
+                    p.key,
+                    p.answer,
+                )
+
+
+def test_cramer_3x3_is_partial_two_parts():
+    """Крамер 3×3 тепер частковий: рівно два поля — Δ і одна невідома."""
+    q = engine.build("cramer_3x3", SECRET, "s|1", "t", 1, 0)
+    assert len(q.parts) == 2
+    assert q.parts[0].key == "det"
+    assert q.parts[1].key.startswith("x_")
 
 
 def _load_ppq_test(tmp_path, keys, count):

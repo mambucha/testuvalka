@@ -1,19 +1,17 @@
-"""Лекція 1: визначники та системи лінійних рівнянь (Крамер, Гаус).
+"""Лекція 1: матриці, визначники та їхні властивості, метод Крамера.
 
-Формат — «кілька полів із проміжними результатами» там, де він природний
-(Крамер: Δ -> x_i, з перенесенням помилки), і одне поле для швидких обчислень
-(визначник, мінор, доповнення). Прийом: спершу задаємо цілу відповідь, потім із
-неї виводимо умову.
+Фокус: обчислення визначників (2×2, 3×3 Саррюс, трикутний), властивості
+визначників, дії над матрицями (kA, A+B, aA+bB, транспонування) і метод Крамера
+(2×2 — у engine.py; 3×3 — ЧАСТКОВО: головний визначник + одна невідома).
 
-Конвенція запису: проза текстом, математика в $...$ / $$...$$, переноси — \n.
-Крамер 2×2 вже є в engine.py як `linear_system_2x2`.
+Прийом: спершу задаємо цілу відповідь, потім із неї виводимо умову — усі
+відповіді цілі (зручні числа). Конвенція запису: проза текстом, математика в
+$...$ / $$...$$, переноси рядків — \n.
 """
 
 from __future__ import annotations
 
 import random
-
-import sympy as sp
 
 from engine import Part, Question, template
 
@@ -125,51 +123,57 @@ def _det_triangular(rng: random.Random) -> Question:
     )
 
 
-@template("minor_3x3")
-def _minor_3x3(rng: random.Random) -> Question:
-    while True:
-        m = [[rng.randint(-4, 4) for _ in range(3)] for _ in range(3)]
-        i, j = rng.randint(1, 3), rng.randint(1, 3)
-        sub = [[m[r][c] for c in range(3) if c != j - 1] for r in range(3) if r != i - 1]
-        minor = sub[0][0] * sub[1][1] - sub[0][1] * sub[1][0]
-        if minor != 0 and abs(minor) <= 50:
-            break
+@template("determinant_property")
+def _determinant_property(rng: random.Random) -> Question:
+    """Властивості визначника: як зміниться Δ після операції над рядками."""
+    base = rng.choice([-1, 1]) * rng.randint(2, 12)
+    variant = rng.choice(["mult", "transpose", "swap", "addrow"])
+    if variant == "mult":
+        k = rng.choice([2, 3, -2])
+        ans = base * k
+        desc = f"один рядок помножено на ${k}$"
+    elif variant == "transpose":
+        ans = base
+        desc = "матрицю транспоновано"
+    elif variant == "swap":
+        ans = -base
+        desc = "переставлено місцями два рядки"
+    else:  # addrow
+        ans = base
+        desc = "до одного рядка додано інший, помножений на число"
     return Question(
-        key="minor_3x3",
+        key="determinant_property",
         statement=(
-            f"Для матриці знайдіть мінор $M_{{{i}{j}}}$ "
-            f"(викресліть {i}-й рядок і {j}-й стовпець):\n$$" + _bmatrix(m) + "$$"
+            rf"Відомо, що визначник квадратної матриці $A$ дорівнює $\Delta = {base}$."
+            "\n"
+            f"Знайдіть визначник матриці, отриманої з $A$ так: {desc}."
         ),
-        parts=[Part("m", f"$M_{{{i}{j}}}$ =", minor, points=1)],
-        seconds=90,
-        params={"m": m, "i": i, "j": j},
+        parts=[Part("d", r"$\Delta'$ =", ans, points=1)],
+        seconds=60,
+        params={"base": base, "variant": variant},
     )
 
 
-@template("cofactor_3x3")
-def _cofactor_3x3(rng: random.Random) -> Question:
-    while True:
-        m = [[rng.randint(-4, 4) for _ in range(3)] for _ in range(3)]
-        i, j = rng.randint(1, 3), rng.randint(1, 3)
-        sub = [[m[r][c] for c in range(3) if c != j - 1] for r in range(3) if r != i - 1]
-        minor = sub[0][0] * sub[1][1] - sub[0][1] * sub[1][0]
-        cof = ((-1) ** (i + j)) * minor
-        if cof != 0 and abs(cof) <= 50:
-            break
+@template("det_scalar_multiple")
+def _det_scalar_multiple(rng: random.Random) -> Question:
+    """Властивість: множення матриці n×n на число c множить визначник на c^n."""
+    base = rng.choice([-1, 1]) * rng.randint(2, 9)  # Δ(A)
+    c = rng.choice([2, 3, -2])
+    ans = (c ** 3) * base  # 3×3 -> c^3
     return Question(
-        key="cofactor_3x3",
+        key="det_scalar_multiple",
         statement=(
-            f"Знайдіть алгебраїчне доповнення $A_{{{i}{j}}}$ елемента матриці:\n$$"
-            + _bmatrix(m)
-            + "$$"
+            rf"Матриця $A$ має розмір $3\times3$, її визначник $\Delta(A) = {base}$."
+            "\n"
+            rf"Знайдіть визначник матриці ${c}A$ (кожен елемент помножено на ${c}$)."
         ),
-        parts=[Part("a", f"$A_{{{i}{j}}}$ =", cof, points=1)],
-        seconds=100,
-        params={"m": m, "i": i, "j": j},
+        parts=[Part("d", f"$\\Delta({c}A)$ =", ans, points=1)],
+        seconds=60,
+        params={"base": base, "c": c},
     )
 
 
-# --- операції над матрицями ---------------------------------------------
+# --- дії над матрицями ---------------------------------------------------
 
 
 @template("matrix_scalar_element")
@@ -217,12 +221,62 @@ def _matrix_sum_element(rng: random.Random) -> Question:
     )
 
 
-# --- системи -------------------------------------------------------------
+@template("matrix_transpose_element")
+def _matrix_transpose_element(rng: random.Random) -> Question:
+    while True:
+        m = [[rng.randint(-6, 6) for _ in range(3)] for _ in range(3)]
+        i, j = rng.randint(1, 3), rng.randint(1, 3)
+        val = m[j - 1][i - 1]  # (A^T)_{ij} = A_{ji}
+        if val != 0:
+            break
+    return Question(
+        key="matrix_transpose_element",
+        statement=(
+            f"Знайдіть елемент $(A^T)_{{{i}{j}}}$ транспонованої матриці:\n$$A = "
+            + _bmatrix(m)
+            + "$$"
+        ),
+        parts=[Part("e", f"$(A^T)_{{{i}{j}}}$ =", val, points=1)],
+        seconds=45,
+        params={"m": m, "i": i, "j": j},
+    )
+
+
+@template("matrix_linear_combination_element")
+def _matrix_linear_combination_element(rng: random.Random) -> Question:
+    while True:
+        A = [[rng.randint(-5, 5) for _ in range(3)] for _ in range(3)]
+        B = [[rng.randint(-5, 5) for _ in range(3)] for _ in range(3)]
+        a = rng.choice([-3, -2, 2, 3])
+        bcoef = rng.choice([-3, -2, 2, 3])
+        i, j = rng.randint(1, 3), rng.randint(1, 3)
+        val = a * A[i - 1][j - 1] + bcoef * B[i - 1][j - 1]
+        if val != 0:
+            break
+    return Question(
+        key="matrix_linear_combination_element",
+        statement=(
+            rf"Дано матриці $A$, $B$ і числа $a={a}$, $b={bcoef}$. "
+            rf"Знайдіть елемент $(aA + bB)_{{{i}{j}}}$:\n$$A = "
+            + _bmatrix(A)
+            + r",\quad B = "
+            + _bmatrix(B)
+            + "$$"
+        ),
+        parts=[Part("e", f"$(aA+bB)_{{{i}{j}}}$ =", val, points=1)],
+        seconds=60,
+        params={"A": A, "B": B, "a": a, "b": bcoef, "i": i, "j": j},
+    )
+
+
+# --- метод Крамера (3×3, ЧАСТКОВО: Δ + одна невідома) --------------------
 
 
 @template("cramer_3x3")
 def _cramer_3x3(rng: random.Random) -> Question:
-    # Спершу відповідь (x) цілими, потім матриця A з ненульовим визначником.
+    """Частковий Крамер: знайти головний визначник Δ і ОДНУ невідому (не всі
+    три) — легше за арифметикою, але метод той самий (заміна стовпця на вільні
+    члени + ділення). Перенесення помилки: x_k рахується зі студентового Δ."""
     while True:
         A = [[rng.randint(-3, 3) for _ in range(3)] for _ in range(3)]
         det = _det3(A)
@@ -231,177 +285,27 @@ def _cramer_3x3(rng: random.Random) -> Question:
     x = [rng.randint(-4, 4) for _ in range(3)]
     b = [sum(A[r][c] * x[c] for c in range(3)) for r in range(3)]
 
-    # Δ_i — визначник із заміненим i-м стовпцем на стовпець вільних членів.
-    def _replace_col(i):
-        return [[b[r] if c == i else A[r][c] for c in range(3)] for r in range(3)]
+    k = rng.randint(0, 2)  # яку невідому шукати (0 -> x_1)
+    Ak = [[b[r] if c == k else A[r][c] for c in range(3)] for r in range(3)]
+    Dk = _det3(Ak)  # = det * x[k]
 
-    Di = [_det3(_replace_col(i)) for i in range(3)]  # Di[i] = det * x[i]
+    def carry_xk(prev):
+        d = prev.get("det")
+        if d is None or d == 0:
+            return None
+        return Dk / d  # x_k зі студентового визначника
 
-    def _carry(i):
-        def f(prev):
-            d = prev.get("det")
-            if d is None or d == 0:
-                return None
-            return Di[i] / d  # x_i зі студентового визначника (перенесення помилки)
-
-        return f
-
+    var = f"x_{k + 1}"
     return Question(
         key="cramer_3x3",
-        statement="Розв'яжіть систему методом Крамера:\n" + _system_latex(A, b),
-        parts=[
-            Part("det", r"$\Delta$ =", det, points=1),
-            Part("x1", "$x_1$ =", x[0], points=1, carry=_carry(0), carry_from=("det",)),
-            Part("x2", "$x_2$ =", x[1], points=1, carry=_carry(1), carry_from=("det",)),
-            Part("x3", "$x_3$ =", x[2], points=1, carry=_carry(2), carry_from=("det",)),
-        ],
-        seconds=300,
-        params={"A": A, "b": b},
-    )
-
-
-@template("gauss_3x3")
-def _gauss_3x3(rng: random.Random) -> Question:
-    while True:
-        A = [[rng.randint(-3, 3) for _ in range(3)] for _ in range(3)]
-        if _det3(A) != 0:
-            break
-    x = [rng.randint(-5, 5) for _ in range(3)]
-    b = [sum(A[r][c] * x[c] for c in range(3)) for r in range(3)]
-    return Question(
-        key="gauss_3x3",
-        statement="Розв'яжіть систему методом Гауса:\n" + _system_latex(A, b),
-        parts=[
-            Part("x1", "$x_1$ =", x[0], points=1),
-            Part("x2", "$x_2$ =", x[1], points=1),
-            Part("x3", "$x_3$ =", x[2], points=1),
-        ],
-        seconds=300,
-        params={"A": A, "b": b},
-    )
-
-
-@template("expansion_by_row")
-def _expansion_by_row(rng: random.Random) -> Question:
-    """Розклад визначника 3×3 за першим рядком: A_{1j} -> Δ (з перенесенням)."""
-    while True:
-        m = [[rng.randint(-4, 4) for _ in range(3)] for _ in range(3)]
-        det = _det3(m)
-        if det != 0 and abs(det) <= 120:
-            break
-
-    def _minor(i, j):
-        sub = [[m[r][c] for c in range(3) if c != j] for r in range(3) if r != i]
-        return sub[0][0] * sub[1][1] - sub[0][1] * sub[1][0]
-
-    # Алгебраїчні доповнення першого рядка (0-based j: знак (-1)^j).
-    cof = [((-1) ** j) * _minor(0, j) for j in range(3)]
-    a1 = m[0]
-
-    def carry_det(prev):
-        keys = ("c11", "c12", "c13")
-        if not all(k in prev for k in keys):
-            return None
-        return a1[0] * prev["c11"] + a1[1] * prev["c12"] + a1[2] * prev["c13"]
-
-    return Question(
-        key="expansion_by_row",
         statement=(
-            "Обчисліть визначник розкладом за першим рядком: знайдіть алгебраїчні "
-            "доповнення $A_{11}, A_{12}, A_{13}$ та сам визначник.\n$$" + _vmatrix(m) + "$$"
-        ),
-        parts=[
-            Part("c11", r"$A_{11}$ =", cof[0], points=1),
-            Part("c12", r"$A_{12}$ =", cof[1], points=1),
-            Part("c13", r"$A_{13}$ =", cof[2], points=1),
-            Part(
-                "det",
-                r"$\Delta$ =",
-                det,
-                points=1,
-                carry=carry_det,
-                carry_from=("c11", "c12", "c13"),
-            ),
-        ],
-        seconds=180,
-        params={"m": m},
-    )
-
-
-@template("determinant_property")
-def _determinant_property(rng: random.Random) -> Question:
-    """Властивості визначника: як зміниться Δ після операції над рядками."""
-    base = rng.choice([-1, 1]) * rng.randint(2, 12)
-    variant = rng.choice(["mult", "transpose", "swap", "addrow"])
-    if variant == "mult":
-        k = rng.choice([2, 3, -2])
-        ans = base * k
-        desc = f"один рядок помножено на ${k}$"
-    elif variant == "transpose":
-        ans = base
-        desc = "матрицю транспоновано"
-    elif variant == "swap":
-        ans = -base
-        desc = "переставлено місцями два рядки"
-    else:  # addrow
-        ans = base
-        desc = "до одного рядка додано інший, помножений на число"
-    return Question(
-        key="determinant_property",
-        statement=(
-            rf"Відомо, що визначник квадратної матриці $A$ дорівнює $\Delta = {base}$."
-            "\n"
-            f"Знайдіть визначник матриці, отриманої з $A$ так: {desc}."
-        ),
-        parts=[Part("d", r"$\Delta'$ =", ans, points=1)],
-        seconds=60,
-        params={"base": base, "variant": variant},
-    )
-
-
-@template("inverse_2x2")
-def _inverse_2x2(rng: random.Random) -> Question:
-    """Обернена 2×2: Δ + чотири елементи A^{-1} (з перенесенням від Δ).
-
-    Тримаємо |Δ| = 1 — тоді елементи оберненої ЦІЛІ (зручні числа). Дробові
-    відповіді grader теж приймає (напр. 3/2 чи 1.5), але тут їх свідомо уникаємо.
-    """
-    while True:
-        a, b, c, d = (rng.randint(-5, 5) for _ in range(4))
-        det = a * d - b * c
-        if det in (1, -1):
-            break
-    adj = {"b11": d, "b12": -b, "b21": -c, "b22": a}  # приєднана / транспонована
-    inv = {key: sp.Rational(val, det) for key, val in adj.items()}
-
-    def _carry(entry):
-        num = adj[entry]
-
-        def f(prev):
-            D = prev.get("det")
-            if D is None or D == 0:
-                return None
-            return num / D
-
-        return f
-
-    def _p(entry, label):
-        return Part(entry, label, inv[entry], points=1, carry=_carry(entry), carry_from=("det",))
-
-    return Question(
-        key="inverse_2x2",
-        statement=(
-            "Знайдіть визначник і елементи оберненої матриці $A^{-1}$:\n$$A = "
-            + _bmatrix([[a, b], [c, d]])
-            + "$$"
+            r"Розв'яжіть систему методом Крамера. Знайдіть головний визначник "
+            rf"$\Delta$ та невідому ${var}$:" + "\n" + _system_latex(A, b)
         ),
         parts=[
             Part("det", r"$\Delta$ =", det, points=1),
-            _p("b11", r"$(A^{-1})_{11}$ ="),
-            _p("b12", r"$(A^{-1})_{12}$ ="),
-            _p("b21", r"$(A^{-1})_{21}$ ="),
-            _p("b22", r"$(A^{-1})_{22}$ ="),
+            Part(f"{var}", f"${var}$ =", x[k], points=1, carry=carry_xk, carry_from=("det",)),
         ],
-        seconds=240,
-        params={"a": a, "b": b, "c": c, "d": d},
+        seconds=210,
+        params={"A": A, "b": b, "var": var},
     )
