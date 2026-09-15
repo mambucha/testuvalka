@@ -13,7 +13,9 @@ import io
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+import engine
 from app import models
+from app.config import SECRET
 from app.service import ServiceError
 
 RESULT_COLS = [
@@ -130,12 +132,14 @@ def anomalies(db: Session, test_key: str) -> list[dict]:
             flags.append("перемикання вкладки")
         out.append(
             {
+                "attempt_id": a.id,
                 "group": a.student.group_name,
                 "full_name": a.student.full_name,
                 "attempt_no": a.attempt_no,
                 "status": a.status,
                 "score": a.score,
                 "max_score": a.max_score,
+                "finished_at": _dt(a.finished_at),
                 "paste_count": paste,
                 "blur_count": blur,
                 "min_seconds_per_question": round(min(secs), 1) if secs else None,
@@ -146,3 +150,67 @@ def anomalies(db: Session, test_key: str) -> list[dict]:
     # Спершу спроби з прапорцями — їх викладач перегляне насамперед.
     out.sort(key=lambda r: (not r["flags"], r["group"], r["full_name"]))
     return out
+
+
+def attempt_detail(db: Session, attempt_id: int) -> dict:
+    """Поіменний розбір спроби: по кожному питанню — що студент увів, який
+    еталон і скільки балів. Еталони перераховуються з seed (у базі їх немає).
+    Лише для викладача (ендпоінт за токеном)."""
+    attempt = db.get(models.Attempt, attempt_id)
+    if attempt is None:
+        raise ServiceError(404, "спробу не знайдено")
+
+    questions = []
+    for aq in sorted(attempt.questions, key=lambda q: q.ordinal):
+        q = engine.build(
+            aq.question_key,
+            SECRET,
+            attempt.student.ident,
+            attempt.test.key,
+            attempt.attempt_no,
+            aq.reissue,
+        )
+        stored = {a.part_key: a for a in aq.answers}
+        parts = []
+        for p in q.parts:
+            a = stored.get(p.key)
+            got = a.score if a else 0.0
+            mx = a.max_points if a else p.points
+            parts.append(
+                {
+                    "label": p.label,
+                    "raw": a.raw if a else "",
+                    "expected": str(p.answer),
+                    "correct": bool(mx and got >= mx),
+                    "score": got,
+                    "max": mx,
+                }
+            )
+        if aq.score is None:
+            verdict = "—"
+        elif aq.max_score and aq.score >= aq.max_score:
+            verdict = "повністю"
+        elif aq.score > 0:
+            verdict = "частково"
+        else:
+            verdict = "ні"
+        questions.append(
+            {
+                "ordinal": aq.ordinal,
+                "question_key": aq.question_key,
+                "reissue": aq.reissue,
+                "score": aq.score,
+                "max_score": aq.max_score,
+                "verdict": verdict,
+                "parts": parts,
+            }
+        )
+    return {
+        "attempt_id": attempt.id,
+        "full_name": attempt.student.full_name,
+        "group": attempt.student.group_name,
+        "status": attempt.status,
+        "score": attempt.score,
+        "max_score": attempt.max_score,
+        "questions": questions,
+    }

@@ -4,14 +4,18 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Кабінет викладача</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 <style>
   :root { --bg:#f6f7f9; --card:#fff; --ink:#1c2430; --muted:#6b7684;
-          --line:#e3e7ec; --accent:#2f6df6; --warn:#d23f3f; }
+          --line:#e3e7ec; --accent:#2f6df6; --warn:#d23f3f; --ok:#1f9d55; --part:#b9820a; }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--ink);
          font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
-  .wrap { max-width:1000px; margin:0 auto; padding:16px; }
+  .wrap { max-width:1100px; margin:0 auto; padding:16px; }
   h1 { font-size:1.2rem; margin:0 0 12px; }
+  h2 { font-size:1.05rem; margin:18px 0 8px; }
   .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; }
   .controls { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; }
   .controls label { font-size:.82rem; color:var(--muted); display:block; margin-bottom:4px; }
@@ -23,10 +27,22 @@
   table { width:100%; border-collapse:collapse; margin-top:16px; font-size:.9rem; }
   th, td { text-align:left; padding:7px 9px; border-bottom:1px solid var(--line); white-space:nowrap; }
   th { color:var(--muted); font-weight:600; }
+  tbody tr.j { cursor:pointer; }
+  tbody tr.j:hover { background:#eef3ff; }
   tr.flagged { background:#fdf0f0; }
   .flag { color:var(--warn); }
   .tablebox { overflow-x:auto; }
   .muted { color:var(--muted); }
+  /* панель розбору */
+  #detail { display:none; margin-top:18px; }
+  .q { border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:10px; }
+  .qhead { font-weight:600; margin-bottom:6px; }
+  .parts { margin-top:4px; font-size:.9rem; }
+  .parts th, .parts td { border-bottom:1px solid var(--line); }
+  tr.pok td { background:#eefaf1; }
+  tr.pno td { background:#fdeeee; }
+  .v-full { color:var(--ok); } .v-part { color:var(--part); } .v-no { color:var(--warn); }
+  .closebtn { background:#eef1f5; color:var(--ink); font-weight:600; }
 </style>
 </head>
 <body>
@@ -36,7 +52,7 @@
     <div class="controls">
       <div>
         <label for="key">Ключ тесту</label>
-        <input id="key" type="text" placeholder="demo" />
+        <input id="key" type="text" placeholder="lecture1" />
       </div>
       <div>
         <label for="token">Токен викладача</label>
@@ -48,33 +64,46 @@
     </div>
     <div id="err" class="err"></div>
     <p class="muted" style="font-size:.82rem">
-      Прапорці — це сирі сигнали (вставка, перемикання вкладки), не звинувачення.
-      Пороги для автоматичного скасування спроби підбираються за даними пілоту.
+      Клікніть на рядок студента, щоб побачити розбір: які питання правильні, а які
+      ні. Прапорці — це сирі сигнали (вставка, перемикання вкладки), не звинувачення.
     </p>
   </div>
 
   <div class="tablebox"><table id="tbl" style="display:none">
     <thead><tr>
       <th>Група</th><th>Прізвище</th><th>Сп.</th><th>Статус</th><th>Бал</th>
-      <th>%</th><th>Вставок</th><th>Втрат фокуса</th><th>Мін. с/пункт</th>
-      <th>Сер. до вводу, мс</th><th>Прапорці</th>
+      <th>%</th><th>Дата здачі</th><th>Вставок</th><th>Втрат фокуса</th>
+      <th>Мін. с/пункт</th><th>Сер. до вводу, мс</th><th>Прапорці</th>
     </tr></thead>
     <tbody></tbody>
   </table></div>
+
+  <div id="detail"></div>
 </div>
 
 <script>
 "use strict";
 const $ = (id) => document.getElementById(id);
-
+const KATEX_OPTS = {
+  delimiters: [
+    {left:"$$", right:"$$", display:true},
+    {left:"$", right:"$", display:false},
+  ], throwOnError:false, strict:false,
+};
 try { $("token").value = localStorage.getItem("testuvalka:teacher") || ""; } catch(e){}
+
+function fmt(x){ return (Math.round((x||0)*100)/100).toString(); }
+
+let TOKEN = "";
 
 async function load(){
   const key = $("key").value.trim();
   const token = $("token").value.trim();
   $("err").textContent = "";
+  $("detail").style.display = "none";
   if (!key || !token){ $("err").textContent = "Вкажіть ключ тесту і токен."; return; }
   try { localStorage.setItem("testuvalka:teacher", token); } catch(e){}
+  TOKEN = token;
 
   let r;
   try {
@@ -89,11 +118,14 @@ async function load(){
   tb.innerHTML = "";
   for (const a of rows){
     const tr = document.createElement("tr");
-    if (a.flags && a.flags.length) tr.className = "flagged";
+    tr.className = "j" + (a.flags && a.flags.length ? " flagged" : "");
+    tr.title = "клікніть для розбору";
+    tr.addEventListener("click", () => loadDetail(a.attempt_id));
     const cells = [
       a.group, a.full_name, a.attempt_no, a.status,
       `${fmt(a.score)} / ${fmt(a.max_score)}`,
       a.max_score ? Math.round(100*a.score/a.max_score) + "%" : "—",
+      a.finished_at || "—",
       a.paste_count, a.blur_count,
       a.min_seconds_per_question == null ? "—" : a.min_seconds_per_question,
       a.avg_first_input_ms == null ? "—" : a.avg_first_input_ms,
@@ -107,14 +139,58 @@ async function load(){
   if (!rows.length) $("err").textContent = "Спроб не знайдено.";
 
   const q = `test_key=${encodeURIComponent(key)}&token=${encodeURIComponent(token)}`;
-  const xlsx = $("xlsx");
-  xlsx.href = `/api/teacher/results_xlsx?${q}`;
-  xlsx.style.display = "inline-block";
-  const csv = $("csv");
-  csv.href = `/api/teacher/results?${q}`;
-  csv.style.display = "inline-block";
+  const xlsx = $("xlsx"); xlsx.href = `/api/teacher/results_xlsx?${q}`; xlsx.style.display = "inline-block";
+  const csv = $("csv"); csv.href = `/api/teacher/results?${q}`; csv.style.display = "inline-block";
 }
-function fmt(x){ return (Math.round((x||0)*100)/100).toString(); }
+
+async function loadDetail(attemptId){
+  const box = $("detail");
+  box.style.display = "block";
+  box.innerHTML = "<p class='muted'>Завантаження розбору…</p>";
+  let r;
+  try {
+    r = await fetch(`/api/teacher/attempt/${attemptId}/detail`, { headers: {"X-Teacher-Token": TOKEN} });
+  } catch(e){ box.innerHTML = "<p class='err'>Немає зв'язку.</p>"; return; }
+  const d = await r.json().catch(()=>({}));
+  if (!r.ok){ box.innerHTML = `<p class='err'>${d.detail || "Помилка"}</p>`; return; }
+
+  box.innerHTML = "";
+  const close = document.createElement("button");
+  close.className = "closebtn"; close.textContent = "Сховати розбір";
+  close.addEventListener("click", () => { box.style.display = "none"; });
+  box.appendChild(close);
+
+  const h = document.createElement("h2");
+  h.textContent = `Розбір: ${d.full_name} (${d.group}) — ${fmt(d.score)} / ${fmt(d.max_score)}`;
+  box.appendChild(h);
+
+  const vclass = {"повністю":"v-full", "частково":"v-part", "ні":"v-no"};
+  (d.questions || []).forEach((qq) => {
+    const div = document.createElement("div"); div.className = "q";
+    const head = document.createElement("div"); head.className = "qhead";
+    const vspan = `<span class="${vclass[qq.verdict]||''}">${qq.verdict}</span>`;
+    head.innerHTML = `Питання ${qq.ordinal+1} — <span class="muted">${qq.question_key}</span> — `
+      + `${fmt(qq.score)} / ${fmt(qq.max_score)} — ${vspan}`;
+    div.appendChild(head);
+
+    const t = document.createElement("table"); t.className = "parts";
+    t.innerHTML = "<thead><tr><th>Поле</th><th>Введено</th><th>Правильна відповідь</th><th>Бал</th></tr></thead>";
+    const tb2 = document.createElement("tbody");
+    qq.parts.forEach((p) => {
+      const tr = document.createElement("tr");
+      tr.className = p.correct ? "pok" : "pno";
+      const lbl = document.createElement("td"); lbl.textContent = p.label;
+      const raw = document.createElement("td"); raw.textContent = p.raw || "(порожньо)";
+      const exp = document.createElement("td"); exp.textContent = p.expected;
+      const sc = document.createElement("td"); sc.textContent = `${fmt(p.score)} / ${fmt(p.max)}`;
+      tr.append(lbl, raw, exp, sc); tb2.appendChild(tr);
+    });
+    t.appendChild(tb2); div.appendChild(t); box.appendChild(div);
+  });
+
+  if (window.renderMathInElement){ try { renderMathInElement(box, KATEX_OPTS); } catch(e){} }
+  box.scrollIntoView({behavior:"smooth", block:"nearest"});
+}
 
 $("load").addEventListener("click", load);
 $("token").addEventListener("keydown", (e)=>{ if(e.key==="Enter") load(); });

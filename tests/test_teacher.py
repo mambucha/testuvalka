@@ -62,6 +62,8 @@ def test_anomalies_report_paste_signal(client):
     assert row["paste_count"] >= 1
     assert "вставка" in row["flags"]
     assert row["min_seconds_per_question"] is not None
+    assert row["attempt_id"]  # для переходу до розбору
+    assert row["finished_at"]  # дата здачі (спроба завершена)
 
 
 def test_disabled_when_no_token(client, monkeypatch):
@@ -81,3 +83,21 @@ def test_results_xlsx_download(client):
     assert "spreadsheetml" in r.headers["content-type"]
     assert r.content[:2] == b"PK"  # xlsx — це zip-архів
     assert len(r.content) > 200
+
+
+def test_attempt_detail_breakdown(client):
+    s = _finish_attempt_with_paste(client)  # усі відповіді правильні
+    # без токена — заборонено
+    assert client.get(f"/api/teacher/attempt/{s.attempt_id}/detail").status_code == 403
+    r = client.get(f"/api/teacher/attempt/{s.attempt_id}/detail", headers=H)
+    assert r.status_code == 200
+    d = r.json()
+    assert d["full_name"] == DEV_FULL_NAME
+    assert len(d["questions"]) == 3  # у demo три питання
+    for qq in d["questions"]:
+        assert qq["parts"]
+        for p in qq["parts"]:
+            assert {"label", "raw", "expected", "correct", "score", "max"} <= set(p)
+    # усе правильно -> усі питання «повністю», кожне поле correct
+    assert all(qq["verdict"] == "повністю" for qq in d["questions"])
+    assert all(p["correct"] for qq in d["questions"] for p in qq["parts"])

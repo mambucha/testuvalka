@@ -175,6 +175,13 @@ def teacher_anomalies(
     return {"test_key": test_key, "attempts": teacher.anomalies(db, test_key)}
 
 
+@app.get("/api/teacher/attempt/{attempt_id}/detail")
+def teacher_attempt_detail(
+    attempt_id: int, db: Session = Depends(get_db), _: bool = Depends(require_teacher)
+):
+    return teacher.attempt_detail(db, attempt_id)
+
+
 # Статичний фронтенд (одна сторінка). Монтуємо ОСТАННІМ, щоб /api/* мали
 # пріоритет; html=True віддає index.html на "/".
 app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
