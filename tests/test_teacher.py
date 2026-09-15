@@ -101,3 +101,32 @@ def test_attempt_detail_breakdown(client):
     # усе правильно -> усі питання «повністю», кожне поле correct
     assert all(qq["verdict"] == "повністю" for qq in d["questions"])
     assert all(p["correct"] for qq in d["questions"] for p in qq["parts"])
+
+
+def test_attempt_detail_survives_removed_template(client):
+    """Розбір старої спроби з видаленим відтоді шаблоном не має падати."""
+    from sqlalchemy import select
+
+    from app import models
+    from app.db import SessionLocal
+
+    s = _finish_attempt_with_paste(client)
+    db = SessionLocal()
+    try:
+        aq = db.scalars(
+            select(models.AttemptQuestion)
+            .where(models.AttemptQuestion.attempt_id == s.attempt_id)
+            .order_by(models.AttemptQuestion.ordinal)
+        ).first()
+        aq.question_key = "gone_template"  # імітуємо видалений шаблон
+        db.add(aq)
+        db.commit()
+    finally:
+        db.close()
+
+    r = client.get(f"/api/teacher/attempt/{s.attempt_id}/detail", headers=H)
+    assert r.status_code == 200  # не 500
+    d = r.json()
+    q0 = next(q for q in d["questions"] if q["question_key"] == "gone_template")
+    assert q0["parts"]  # показує збережені відповіді
+    assert q0["parts"][0]["expected"] == "—"  # еталона немає — і це ок

@@ -162,25 +162,35 @@ def attempt_detail(db: Session, attempt_id: int) -> dict:
 
     questions = []
     for aq in sorted(attempt.questions, key=lambda q: q.ordinal):
-        q = engine.build(
-            aq.question_key,
-            SECRET,
-            attempt.student.ident,
-            attempt.test.key,
-            attempt.attempt_no,
-            aq.reissue,
-        )
+        # Перерахунок еталона з seed. Якщо шаблон відтоді видалено/змінено —
+        # не падаємо: показуємо введене й бали без еталона.
+        try:
+            built = engine.build(
+                aq.question_key,
+                SECRET,
+                attempt.student.ident,
+                attempt.test.key,
+                attempt.attempt_no,
+                aq.reissue,
+            )
+            ref = {p.key: p for p in built.parts}
+            order = [p.key for p in built.parts]
+        except Exception:  # noqa: BLE001
+            ref, order = {}, None
+
         stored = {a.part_key: a for a in aq.answers}
+        keys = order if order is not None else [a.part_key for a in aq.answers]
         parts = []
-        for p in q.parts:
-            a = stored.get(p.key)
+        for pk in keys:
+            p = ref.get(pk)
+            a = stored.get(pk)
             got = a.score if a else 0.0
-            mx = a.max_points if a else p.points
+            mx = a.max_points if a else (p.points if p else 0.0)
             parts.append(
                 {
-                    "label": p.label,
+                    "label": p.label if p else pk,
                     "raw": a.raw if a else "",
-                    "expected": str(p.answer),
+                    "expected": str(p.answer) if p else "—",
                     "correct": bool(mx and got >= mx),
                     "score": got,
                     "max": mx,
