@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Кабінет викладача</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1c2430; --muted:#6b7684;
+          --line:#e3e7ec; --accent:#2f6df6; --warn:#d23f3f; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:1000px; margin:0 auto; padding:16px; }
+  h1 { font-size:1.2rem; margin:0 0 12px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .controls { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; }
+  .controls label { font-size:.82rem; color:var(--muted); display:block; margin-bottom:4px; }
+  input { font-size:15px; padding:9px 12px; border:1px solid var(--line); border-radius:8px; }
+  button { font-size:15px; font-weight:600; padding:9px 16px; border:0; border-radius:8px;
+           background:var(--accent); color:#fff; cursor:pointer; }
+  a.dl { display:inline-block; margin-left:8px; font-size:.9rem; }
+  .err { color:var(--warn); margin-top:10px; min-height:1.1em; }
+  table { width:100%; border-collapse:collapse; margin-top:16px; font-size:.9rem; }
+  th, td { text-align:left; padding:7px 9px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { color:var(--muted); font-weight:600; }
+  tr.flagged { background:#fdf0f0; }
+  .flag { color:var(--warn); }
+  .tablebox { overflow-x:auto; }
+  .muted { color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Кабінет викладача</h1>
+  <div class="card">
+    <div class="controls">
+      <div>
+        <label for="key">Ключ тесту</label>
+        <input id="key" type="text" placeholder="demo" />
+      </div>
+      <div>
+        <label for="token">Токен викладача</label>
+        <input id="token" type="password" placeholder="TESTUVALKA_TEACHER_TOKEN" />
+      </div>
+      <button id="load">Показати</button>
+      <a id="csv" class="dl" href="#" style="display:none">⬇ Завантажити CSV (журнал)</a>
+    </div>
+    <div id="err" class="err"></div>
+    <p class="muted" style="font-size:.82rem">
+      Прапорці — це сирі сигнали (вставка, перемикання вкладки), не звинувачення.
+      Пороги для автоматичного скасування спроби підбираються за даними пілоту.
+    </p>
+  </div>
+
+  <div class="tablebox"><table id="tbl" style="display:none">
+    <thead><tr>
+      <th>Група</th><th>Прізвище</th><th>Сп.</th><th>Статус</th><th>Бал</th>
+      <th>%</th><th>Вставок</th><th>Втрат фокуса</th><th>Мін. с/пункт</th>
+      <th>Сер. до вводу, мс</th><th>Прапорці</th>
+    </tr></thead>
+    <tbody></tbody>
+  </table></div>
+</div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+
+try { $("token").value = localStorage.getItem("testuvalka:teacher") || ""; } catch(e){}
+
+async function load(){
+  const key = $("key").value.trim();
+  const token = $("token").value.trim();
+  $("err").textContent = "";
+  if (!key || !token){ $("err").textContent = "Вкажіть ключ тесту і токен."; return; }
+  try { localStorage.setItem("testuvalka:teacher", token); } catch(e){}
+
+  let r;
+  try {
+    r = await fetch(`/api/teacher/anomalies?test_key=${encodeURIComponent(key)}`,
+      { headers: {"X-Teacher-Token": token} });
+  } catch(e){ $("err").textContent = "Немає зв'язку із сервером."; return; }
+  const data = await r.json().catch(()=>({}));
+  if (!r.ok){ $("err").textContent = data.detail || "Помилка доступу."; $("tbl").style.display="none"; return; }
+
+  const rows = data.attempts || [];
+  const tb = $("tbl").querySelector("tbody");
+  tb.innerHTML = "";
+  for (const a of rows){
+    const tr = document.createElement("tr");
+    if (a.flags && a.flags.length) tr.className = "flagged";
+    const cells = [
+      a.group, a.full_name, a.attempt_no, a.status,
+      `${fmt(a.score)} / ${fmt(a.max_score)}`,
+      a.max_score ? Math.round(100*a.score/a.max_score) + "%" : "—",
+      a.paste_count, a.blur_count,
+      a.min_seconds_per_question == null ? "—" : a.min_seconds_per_question,
+      a.avg_first_input_ms == null ? "—" : a.avg_first_input_ms,
+    ];
+    for (const c of cells){ const td = document.createElement("td"); td.textContent = c; tr.appendChild(td); }
+    const fl = document.createElement("td"); fl.className = "flag";
+    fl.textContent = (a.flags||[]).join(", "); tr.appendChild(fl);
+    tb.appendChild(tr);
+  }
+  $("tbl").style.display = rows.length ? "" : "none";
+  if (!rows.length) $("err").textContent = "Спроб не знайдено.";
+
+  const csv = $("csv");
+  csv.href = `/api/teacher/results?test_key=${encodeURIComponent(key)}&token=${encodeURIComponent(token)}`;
+  csv.style.display = "inline-block";
+}
+function fmt(x){ return (Math.round((x||0)*100)/100).toString(); }
+
+$("load").addEventListener("click", load);
+$("token").addEventListener("keydown", (e)=>{ if(e.key==="Enter") load(); });
+$("key").addEventListener("keydown", (e)=>{ if(e.key==="Enter") load(); });
+</script>
+</body>
+</html>

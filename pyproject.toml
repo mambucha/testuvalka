@@ -1,0 +1,8 @@
+[tool.pytest.ini_options]
+# Корінь у sys.path (import engine / app.*), і tests/ (import support).
+pythonpath = [".", "tests"]
+testpaths = ["tests"]
+filterwarnings = [
+    # Дев-секрет свідомо тригерить попередження — не хочемо шуму в тестах.
+    "ignore:TESTUVALKA_SECRET:UserWarning",
+]

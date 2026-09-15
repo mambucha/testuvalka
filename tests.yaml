@@ -1,0 +1,49 @@
+# Тести описуються тут і завантажуються в БД командою:
+#     python -m app.load_tests tests.yaml
+#
+# Шаблони задач — це код (engine.py, app/bank/*). Тут лише ТЕСТИ, що посилаються
+# на ключі шаблонів. Обмеження: question_count не більший за розмір bank —
+# ключ у межах спроби не повторюється (інакше однакові числа).
+#
+# Дати (opens_at/closes_at) — за бажанням, у форматі ISO (UTC). Без них тест
+# відкритий завжди.
+
+- key: demo
+  title: Демонстраційний тест
+  question_count: 3
+  bank: [linear_system_2x2, quadratic_roots, derivative_at_point]
+  max_attempts: 3
+  max_reissues: 2
+
+- key: lines_1
+  title: Пряма за двома точками (1 курс)
+  question_count: 1
+  bank: [line_through_two_points]
+  max_attempts: 2
+  max_reissues: 2
+  # opens_at: 2026-09-20T08:00
+  # closes_at: 2026-09-22T20:00
+
+# Лекція 1: визначники та СЛАР (Крамер, Гаус).
+# 10 питань по 0,5 бала кожне -> усього 5 балів (points_per_question нормує
+# питання незалежно від кількості полів усередині).
+- key: lecture1
+  title: "Лекція 1. Визначники та системи лінійних рівнянь"
+  question_count: 10
+  points_per_question: 0.5
+  bank:
+    - det_2x2
+    - det_3x3_sarrus
+    - det_triangular
+    - minor_3x3
+    - cofactor_3x3
+    - expansion_by_row       # розклад за рядком
+    - determinant_property   # властивості визначника
+    - matrix_scalar_element
+    - matrix_sum_element
+    - inverse_2x2            # обернена матриця 2×2
+    - linear_system_2x2      # Крамер 2×2
+    - cramer_3x3
+    - gauss_3x3
+  max_attempts: 2
+  max_reissues: 2

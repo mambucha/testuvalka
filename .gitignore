@@ -1,0 +1,17 @@
+# Секрети і локальна БД — ніколи не комітити (п. 5.6, 6.7).
+.env
+*.db
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+
+# IDE
+.idea/
+.vscode/

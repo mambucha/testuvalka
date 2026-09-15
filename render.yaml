@@ -1,0 +1,22 @@
+# Render Blueprint (безкоштовний веб-сервіс на Docker, регіон Франкфурт).
+# Розгортання: Render -> New -> Blueprint -> вкажіть цей репозиторій.
+#
+# УВАГА: безкоштовний веб-сервіс Render засинає після ~15 хв простою і
+# прокидається 30-60 с (холодний старт). Перед вікном тесту «розбудіть» його
+# зовнішнім пінгером (cron-job.org / UptimeRobot). Безкоштовний Postgres Render
+# живе лише ~30 днів, тому БД — окремо (Neon), URL задається в дашборді.
+services:
+  - type: web
+    name: testuvalka
+    runtime: docker
+    region: frankfurt
+    plan: free
+    envVars:
+      - key: TESTUVALKA_SECRET
+        sync: false                 # задати в дашборді (сталий секрет)
+      - key: TESTUVALKA_TEACHER_TOKEN
+        sync: false                 # задати в дашборді
+      - key: TESTUVALKA_DATABASE_URL
+        sync: false                 # напр. postgresql+psycopg://... від Neon
+      - key: TESTUVALKA_AUTOLOAD
+        value: tests.yaml           # тести вантажаться на кожному старті

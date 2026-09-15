@@ -1,0 +1,57 @@
+# Продакшн-стек для однієї ВМ (Oracle Always Free / Hetzner тощо):
+#   app   — наш застосунок (FastAPI + uvicorn)
+#   db    — PostgreSQL (дані в постійному томі, переживають перезапуск і редеплой)
+#   caddy — HTTPS-проксі (сам отримує сертифікат Let's Encrypt для домену)
+#
+# Значення секретів беруться з файла .env поруч (див. DEPLOY_ORACLE.md).
+# Запуск:   docker compose up -d --build
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: testuvalka
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: testuvalka
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U testuvalka"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      TESTUVALKA_SECRET: ${TESTUVALKA_SECRET}
+      TESTUVALKA_TEACHER_TOKEN: ${TESTUVALKA_TEACHER_TOKEN}
+      TESTUVALKA_DATABASE_URL: postgresql+psycopg://testuvalka:${DB_PASSWORD}@db:5432/testuvalka
+      TESTUVALKA_AUTOLOAD: tests.yaml
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8000"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  dbdata:
+  caddy_data:
+  caddy_config:

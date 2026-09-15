@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Тестування</title>
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
+/>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1c2430; --muted:#6b7684;
+          --line:#e3e7ec; --accent:#2f6df6; --ok:#1f9d55; --warn:#d23f3f; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px;
+          padding: 20px; box-shadow: 0 1px 2px rgba(20,30,50,.04); }
+  h1 { font-size: 1.25rem; margin: 0 0 4px; }
+  .muted { color: var(--muted); }
+  label { display:block; font-size:.9rem; color:var(--muted); margin: 12px 0 4px; }
+  input[type=text] { width:100%; font-size:16px; padding:12px 14px; border-radius:10px;
+                     border:1px solid var(--line); background:#fff; }
+  input[type=text]:focus { outline:2px solid var(--accent); border-color:transparent; }
+  button { font-size:16px; font-weight:600; padding:13px 18px; border:0; border-radius:10px;
+           background:var(--accent); color:#fff; cursor:pointer; width:100%; margin-top:16px; }
+  button:disabled { opacity:.55; cursor:default; }
+  .row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .bar { height:6px; background:var(--line); border-radius:99px; overflow:hidden; margin:10px 0 0; }
+  .bar > i { display:block; height:100%; background:var(--accent); transition:width 1s linear; }
+  .timer { font-variant-numeric: tabular-nums; font-weight:700; font-size:1.1rem; }
+  .timer.low { color: var(--warn); }
+  .badge { display:inline-block; font-size:.78rem; background:#fdecec; color:var(--warn);
+           border-radius:99px; padding:2px 10px; margin-left:8px; }
+  .statement { font-size:1.15rem; margin:14px 0 6px; }
+  .part { margin-top:14px; }
+  .part .lbl { font-size:1rem; margin-bottom:4px; }
+  .err { color:var(--warn); margin-top:12px; min-height:1.2em; }
+  .toast { position:fixed; left:50%; bottom:22px; transform:translateX(-50%);
+           background:#1c2430; color:#fff; padding:10px 16px; border-radius:10px;
+           font-size:.92rem; opacity:0; transition:opacity .2s; pointer-events:none; }
+  .toast.show { opacity:.96; }
+  .big { font-size:2.4rem; font-weight:800; }
+  .hidden { display:none !important; }
+  .katex-display { margin:.3em 0; overflow-x:auto; overflow-y:hidden; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Вхід -->
+  <section id="login" class="card hidden">
+    <h1>Вхід у тест</h1>
+    <div id="test-title" class="muted"></div>
+    <label for="in-name">Прізвище та ім'я</label>
+    <input id="in-name" type="text" autocomplete="name" placeholder="Іваненко Іван" />
+    <label for="in-group">Група</label>
+    <input id="in-group" type="text" placeholder="КН-11" />
+    <label id="lbl-key" for="in-key" class="hidden">Ключ тесту</label>
+    <input id="in-key" type="text" class="hidden" placeholder="demo" />
+    <button id="btn-start">Почати</button>
+    <div id="login-err" class="err"></div>
+    <p class="muted" style="font-size:.82rem; margin-top:14px">
+      На кожен пункт — окремий таймер. Якщо зв'язок обірветься, повернетесь тим
+      самим прізвищем і групою й продовжите. Час вийде — питання переставиться з
+      іншими числами.
+    </p>
+  </section>
+
+  <!-- Питання -->
+  <section id="quiz" class="card hidden">
+    <div class="row">
+      <div><span id="progress" class="muted"></span><span id="reissue" class="badge hidden"></span></div>
+      <div id="timer" class="timer">--:--</div>
+    </div>
+    <div class="bar"><i id="bar" style="width:100%"></i></div>
+    <div id="statement" class="statement"></div>
+    <div id="parts"></div>
+    <button id="btn-submit">Відповісти</button>
+    <div id="quiz-err" class="err"></div>
+  </section>
+
+  <!-- Підсумок -->
+  <section id="done" class="card hidden">
+    <h1>Тест завершено</h1>
+    <p class="big"><span id="score">0</span> / <span id="maxscore">0</span></p>
+    <p id="percent" class="muted"></p>
+  </section>
+
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const api = (p) => "/api" + p;
+
+const state = {
+  testKey: null, attemptId: null, token: null,
+  seconds: 0, total: 0, tick: null, shownAt: 0, firstInput: false,
+  active: false, submitting: false,
+};
+
+// --- сесія в localStorage (для відновлення після перезавантаження) ---
+function sessKey(k){ return "testuvalka:session:" + k; }
+function saveSession(){ try { localStorage.setItem(sessKey(state.testKey),
+  JSON.stringify({attemptId: state.attemptId, token: state.token})); } catch(e){} }
+function loadSession(k){ try { return JSON.parse(localStorage.getItem(sessKey(k))||"null"); } catch(e){ return null; } }
+function clearSession(){ try { localStorage.removeItem(sessKey(state.testKey)); } catch(e){} }
+
+// --- рендер умов: проза лишається HTML-текстом (переноситься), а математика
+// в роздільниках $...$ / $$...$$ віддається в KaTeX. Переноси рядків — \n. ---
+function escapeHtml(s){
+  return String(s).replace(/[&<>]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+}
+const KATEX_OPTS = {
+  delimiters: [
+    {left:"$$", right:"$$", display:true},
+    {left:"$", right:"$", display:false},
+    {left:"\\[", right:"\\]", display:true},
+    {left:"\\(", right:"\\)", display:false},
+  ],
+  throwOnError:false, strict:false,
+};
+function renderMath(el, latex){
+  el.innerHTML = escapeHtml(latex).replace(/\n/g, "<br>");
+  if (window.renderMathInElement){
+    try { renderMathInElement(el, KATEX_OPTS); } catch(e){}
+  }
+}
+
+function toast(msg){
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+function sendEvent(type, payload){
+  if (!state.attemptId) return;
+  fetch(api(`/attempt/${state.attemptId}/event`), {
+    method:"POST", headers:{"Content-Type":"application/json","X-Attempt-Token":state.token||""},
+    body: JSON.stringify({type, payload: payload||{}}), keepalive:true,
+  }).catch(()=>{});
+}
+
+// --- таймер (лише індикатор; дедлайн вирішує сервер) ---
+function stopTimer(){ if (state.tick){ clearInterval(state.tick); state.tick=null; } }
+function startTimer(seconds){
+  stopTimer();
+  state.seconds = Math.max(0, seconds|0);
+  const full = state.seconds || 1;
+  const render = () => {
+    const s = state.seconds;
+    const mm = String(Math.floor(s/60)).padStart(2,"0");
+    const ss = String(s%60).padStart(2,"0");
+    $("timer").textContent = `${mm}:${ss}`;
+    $("timer").classList.toggle("low", s <= 10);
+    $("bar").style.width = Math.max(0, Math.min(100, (s/full)*100)) + "%";
+  };
+  render();
+  state.tick = setInterval(() => {
+    state.seconds -= 1;
+    if (state.seconds <= 0){ render(); stopTimer(); autoSubmit(); }
+    else render();
+  }, 1000);
+}
+
+async function apiGet(path){
+  const r = await fetch(api(path), {headers:{"X-Attempt-Token":state.token||""}});
+  return r;
+}
+async function apiPost(path, body){
+  const r = await fetch(api(path), {method:"POST",
+    headers:{"Content-Type":"application/json","X-Attempt-Token":state.token||""},
+    body: JSON.stringify(body||{})});
+  return r;
+}
+
+// --- екрани ---
+function show(section){
+  for (const id of ["login","quiz","done"]) $(id).classList.toggle("hidden", id!==section);
+}
+
+async function doStart(){
+  const name = $("in-name").value.trim();
+  const group = $("in-group").value.trim();
+  const key = state.testKey || $("in-key").value.trim();
+  $("login-err").textContent = "";
+  if (!name || !group){ $("login-err").textContent = "Вкажіть прізвище та групу."; return; }
+  if (!key){ $("login-err").textContent = "Вкажіть ключ тесту."; return; }
+  $("btn-start").disabled = true;
+  try {
+    const r = await apiPost("/attempt/start", {test_key:key, full_name:name, group});
+    const data = await r.json();
+    if (!r.ok){ $("login-err").textContent = data.detail || "Не вдалося почати тест."; return; }
+    state.testKey = key; state.attemptId = data.attempt_id; state.token = data.token;
+    saveSession();
+    await loadCurrent();
+  } catch(e){ $("login-err").textContent = "Немає зв'язку із сервером."; }
+  finally { $("btn-start").disabled = false; }
+}
+
+async function loadCurrent(){
+  let r;
+  try { r = await apiGet(`/attempt/${state.attemptId}/current`); }
+  catch(e){ toast("Немає зв'язку — спробуйте ще раз"); return; }
+  if (r.status === 404){ clearSession(); state.active=false; show("login");
+    $("login-err").textContent = "Сесію не знайдено. Увійдіть знову."; return; }
+  const data = await r.json();
+  if (data.finished){ showDone(data.score, data.max_score); return; }
+  renderQuestion(data);
+}
+
+function renderQuestion(data){
+  state.active = true; show("quiz");
+  $("progress").textContent = `Питання ${data.ordinal+1} / ${data.total}`;
+  const rb = $("reissue");
+  if (data.reissue > 0){ rb.textContent = `перевидання ${data.reissue}`; rb.classList.remove("hidden"); }
+  else rb.classList.add("hidden");
+
+  renderMath($("statement"), data.question.statement);
+
+  const box = $("parts"); box.innerHTML = "";
+  state.firstInput = false; state.shownAt = Date.now();
+  data.question.parts.forEach((p, i) => {
+    const wrap = document.createElement("div"); wrap.className = "part";
+    const lbl = document.createElement("div"); lbl.className = "lbl";
+    renderMath(lbl, p.label);
+    const inp = document.createElement("input");
+    inp.type = "text"; inp.id = "part-" + p.key; inp.autocomplete = "off";
+    inp.setAttribute("autocapitalize","off"); inp.setAttribute("spellcheck","false");
+    inp.addEventListener("input", onFirstInput);
+    inp.addEventListener("paste", () => sendEvent("paste", {part:p.key}));
+    inp.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+    wrap.appendChild(lbl); wrap.appendChild(inp); box.appendChild(wrap);
+    if (i === 0) setTimeout(() => inp.focus(), 30);
+  });
+  $("quiz-err").textContent = "";
+  $("btn-submit").disabled = false;
+  startTimer(data.seconds_left);
+}
+
+function onFirstInput(){
+  if (state.firstInput) return;
+  state.firstInput = true;
+  sendEvent("first_input", {ms: Date.now() - state.shownAt});
+}
+
+function collect(){
+  const out = {};
+  document.querySelectorAll("#parts input").forEach((inp) => {
+    out[inp.id.replace(/^part-/, "")] = inp.value;
+  });
+  return out;
+}
+
+function autoSubmit(){ if (state.active && !state.submitting) submit(); }
+
+async function submit(){
+  if (state.submitting || !state.active) return;
+  state.submitting = true; $("btn-submit").disabled = true; $("quiz-err").textContent = "";
+  sendEvent("submit", {});
+  let r;
+  try { r = await apiPost(`/attempt/${state.attemptId}/answer`, {answers: collect()}); }
+  catch(e){ $("quiz-err").textContent = "Немає зв'язку — спробуйте ще раз.";
+            $("btn-submit").disabled=false; state.submitting=false; return; }
+  const data = await r.json().catch(()=>({}));
+  state.submitting = false;
+  if (r.status === 404){ clearSession(); state.active=false; show("login");
+    $("login-err").textContent = "Сесію не знайдено. Увійдіть знову."; return; }
+  if (data.finished){ showDone(data.score, data.max_score); return; }
+  if (data.expired){ toast("Час вийшов — нове завдання"); }
+  await loadCurrent();
+}
+
+function showDone(score, max){
+  stopTimer(); state.active = false; clearSession();
+  show("done");
+  $("score").textContent = fmt(score); $("maxscore").textContent = fmt(max);
+  const pct = max ? Math.round((score/max)*100) : 0;
+  $("percent").textContent = `Результат: ${pct}%`;
+}
+function fmt(x){ return (Math.round((x||0)*100)/100).toString(); }
+
+// --- телеметрія фокуса вкладки ---
+document.addEventListener("visibilitychange", () => {
+  if (!state.active) return;
+  sendEvent(document.hidden ? "blur" : "focus", {});
+});
+// --- попередження при спробі закрити вкладку під час тесту ---
+window.addEventListener("beforeunload", (e) => {
+  if (state.active){ e.preventDefault(); e.returnValue = ""; }
+});
+
+// --- старт сторінки ---
+function init(){
+  const params = new URLSearchParams(location.search);
+  state.testKey = params.get("test");
+  if (state.testKey){ $("test-title").textContent = "Тест: " + state.testKey; }
+  else { $("lbl-key").classList.remove("hidden"); $("in-key").classList.remove("hidden"); }
+
+  $("btn-start").addEventListener("click", doStart);
+  $("in-group").addEventListener("keydown", (e)=>{ if(e.key==="Enter") doStart(); });
+
+  // Відновлення сесії після перезавантаження.
+  const sess = state.testKey ? loadSession(state.testKey) : null;
+  if (sess && sess.attemptId && sess.token){
+    state.attemptId = sess.attemptId; state.token = sess.token;
+    sendEvent("resume", {});
+    loadCurrent();
+  } else {
+    show("login");
+  }
+}
+document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>
