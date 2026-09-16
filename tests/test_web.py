@@ -22,6 +22,17 @@ def test_integrity_markers_present(client):
     assert 'class="integrity"' in html  # декларація на вході
     assert 'class="integrity-line"' in html  # рядок під питанням
     assert "ШІ" in html  # згадка про ШІ-помічників
+    assert "статуту коледжу" in html or "статутом коледжу" in html
+
+
+def test_agree_checkbox_gates_start(client):
+    """Кнопка старту заблокована, доки не позначено ознайомлення; є чекбокс і
+    обробник, що керує станом кнопки."""
+    html = client.get("/").text
+    assert 'id="agree"' in html
+    assert 'id="btn-start" disabled' in html  # стартова кнопка вимкнена
+    assert '"agree").addEventListener("change"' in html
+    assert '"agree").checked' in html  # doStart перевіряє згоду
 
 
 def test_submit_button_is_wired(client):

@@ -114,6 +114,15 @@ def answer(
     return service.submit_answer(db, attempt_id, token, body.answers)
 
 
+@app.get("/api/attempt/{attempt_id}/review")
+def review(
+    attempt_id: int,
+    db: Session = Depends(get_db),
+    token: str = Depends(_token),
+):
+    return service.review_attempt(db, attempt_id, token)
+
+
 @app.post("/api/attempt/{attempt_id}/event", status_code=204)
 def event(
     attempt_id: int,

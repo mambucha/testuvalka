@@ -162,3 +162,51 @@ def test_event_logging_returns_204(student):
     student.start()
     r = student.event("paste", {"part": "det", "len": 3})
     assert r.status_code == 204
+
+
+def test_student_review_after_finish(student):
+    """Після завершення студент бачить розбір: бали по питаннях і правильні
+    відповіді для помилок. До завершення розбір недоступний (409)."""
+    student.start()
+
+    # Під час активної спроби розбір заборонений.
+    r = student.client.get(
+        f"/api/attempt/{student.attempt_id}/review",
+        headers={"X-Attempt-Token": student.token},
+    )
+    assert r.status_code == 409
+
+    # Проходимо весь тест правильно.
+    while True:
+        cur = student.current_json()
+        if cur.get("finished"):
+            break
+        student.answer(correct_answers(cur["question"]["key"]))
+
+    r = student.client.get(
+        f"/api/attempt/{student.attempt_id}/review",
+        headers={"X-Attempt-Token": student.token},
+    )
+    assert r.status_code == 200
+    d = r.json()
+    assert len(d["questions"]) == 3
+    for q in d["questions"]:
+        assert q["verdict"] == "повністю"
+        for p in q["parts"]:
+            assert p["correct"] is True
+            assert {"label", "raw", "expected", "correct"} == set(p)
+
+
+def test_student_review_requires_token(student):
+    student.start()
+    while True:
+        cur = student.current_json()
+        if cur.get("finished"):
+            break
+        student.answer(correct_answers(cur["question"]["key"]))
+    # чужий/порожній токен -> 404
+    r = student.client.get(
+        f"/api/attempt/{student.attempt_id}/review",
+        headers={"X-Attempt-Token": "wrong"},
+    )
+    assert r.status_code == 404

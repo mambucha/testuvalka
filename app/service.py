@@ -443,3 +443,55 @@ def log_event(
     attempt = _authorize(db, attempt_id, token)
     _log(db, attempt.id, type_, payload)
     db.commit()
+
+
+def review_attempt(db: Session, attempt_id: int, token: str) -> dict:
+    """Розбір для студента (за токеном спроби, лише після завершення). Показує
+    по кожному питанню бал і, для помилок, правильну відповідь. Числа спроби
+    одноразові, тож показ еталонів безпечний. Телеметрії тут немає."""
+    attempt = _authorize(db, attempt_id, token)
+    if attempt.status != "finished":
+        raise ServiceError(409, "розбір буде доступний після завершення тесту")
+
+    questions = []
+    for aq in sorted(attempt.questions, key=lambda q: q.ordinal):
+        try:
+            built = _build(attempt, aq)
+            ref = {p.key: p for p in built.parts}
+            order = [p.key for p in built.parts]
+        except Exception:  # noqa: BLE001 — шаблон могли змінити після спроби
+            ref, order = {}, None
+
+        stored = {a.part_key: a for a in aq.answers}
+        keys = order if order is not None else [a.part_key for a in aq.answers]
+        parts = []
+        for pk in keys:
+            p = ref.get(pk)
+            a = stored.get(pk)
+            got = a.score if a else 0.0
+            mx = a.max_points if a else (p.points if p else 0.0)
+            parts.append(
+                {
+                    "label": p.label if p else pk,
+                    "raw": a.raw if a else "",
+                    "expected": str(p.answer) if p else "—",
+                    "correct": bool(mx and got >= mx),
+                }
+            )
+        if aq.score is None:
+            verdict = "ні"
+        elif aq.max_score and aq.score >= aq.max_score:
+            verdict = "повністю"
+        elif aq.score > 0:
+            verdict = "частково"
+        else:
+            verdict = "ні"
+        questions.append(
+            {
+                "score": aq.score or 0.0,
+                "max_score": aq.max_score,
+                "verdict": verdict,
+                "parts": parts,
+            }
+        )
+    return {"score": attempt.score, "max_score": attempt.max_score, "questions": questions}

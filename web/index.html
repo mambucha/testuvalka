@@ -12,7 +12,7 @@
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 <style>
   :root { --bg:#f6f7f9; --card:#fff; --ink:#1c2430; --muted:#6b7684;
-          --line:#e3e7ec; --accent:#2f6df6; --ok:#1f9d55; --warn:#d23f3f; }
+          --line:#e3e7ec; --accent:#2f6df6; --ok:#1f9d55; --warn:#d23f3f; --part:#b9820a; }
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--ink);
          font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
@@ -42,6 +42,21 @@
                background:#fff7ed; border:1px solid #f0d7ad; border-radius:8px; color:#7a5312; }
   .integrity-line { margin-top:14px; padding-top:10px; border-top:1px solid var(--line);
                     font-size:.75rem; color:var(--muted); text-align:center; }
+  .agree { display:flex; align-items:flex-start; gap:8px; margin:12px 2px 0;
+           font-size:.9rem; cursor:pointer; }
+  .agree input { width:18px; height:18px; margin-top:1px; flex:0 0 auto; }
+  #review { margin-top:20px; text-align:left; }
+  #review h2 { font-size:1rem; margin:0 0 10px; }
+  .rev-q { display:flex; align-items:center; gap:10px; padding:9px 0;
+           border-top:1px solid var(--line); font-size:.92rem; }
+  .rev-mark { flex:0 0 auto; width:22px; height:22px; border-radius:50%;
+              display:flex; align-items:center; justify-content:center;
+              font-size:.9rem; font-weight:700; color:#fff; }
+  .rev-ok { background:var(--ok); }
+  .rev-part { background:var(--part); }
+  .rev-no { background:var(--warn); }
+  .rev-body { flex:1 1 auto; }
+  .rev-fix { color:var(--muted); font-size:.85rem; }
   .part { margin-top:14px; }
   .part .lbl { font-size:1rem; margin-bottom:4px; }
   .err { color:var(--warn); margin-top:12px; min-height:1.2em; }
@@ -68,15 +83,18 @@
     <label id="lbl-key" for="in-key" class="hidden">Ключ тесту</label>
     <input id="in-key" type="text" class="hidden" placeholder="demo" />
     <div class="integrity">
-      <strong>Оцінюване завдання.</strong> Виконуйте самостійно. Правила курсу
-      не дозволяють сторонньої допомоги — зокрема інших осіб та ШІ-помічників
-      (чат-боти, агенти). Варіант у кожного індивідуальний.
+      <strong>Оцінюване завдання.</strong> Виконуйте самостійно. Статут коледжу
+      не дозволяє сторонньої допомоги, зокрема від інших осіб та ШІ-помічників
+      (чат-боти, агенти). Варіант у кожного студента індивідуальний.
     </div>
-    <button id="btn-start">Почати</button>
+    <label class="agree"><input type="checkbox" id="agree" />
+      Підтверджую, що виконую завдання самостійно, з дотриманням академічної
+      доброчесності</label>
+    <button id="btn-start" disabled>Почати</button>
     <div id="login-err" class="err"></div>
     <p class="muted" style="font-size:.82rem; margin-top:14px">
-      На кожен пункт — окремий таймер. Якщо зв'язок обірветься, повернетесь тим
-      самим прізвищем і групою й продовжите. Час вийде — питання переставиться з
+      На кожен пункт свій таймер. Якщо зв'язок обірветься, поверніться тим самим
+      прізвищем і групою та продовжите. Коли час вийде, питання переставиться з
       іншими числами.
     </p>
   </section>
@@ -95,7 +113,7 @@
     <div id="quiz-err" class="err"></div>
     <div class="integrity-line">
       Оцінюване завдання · стороння допомога, зокрема ШІ-помічники, не дозволена
-      правилами курсу.
+      статутом коледжу.
     </div>
   </section>
 
@@ -104,6 +122,7 @@
     <h1>Тест завершено</h1>
     <p class="big"><span id="score">0</span> / <span id="maxscore">0</span></p>
     <p id="percent" class="muted"></p>
+    <div id="review"></div>
   </section>
 
 </div>
@@ -128,7 +147,7 @@ function loadSession(k){ try { return JSON.parse(localStorage.getItem(sessKey(k)
 function clearSession(){ try { localStorage.removeItem(sessKey(state.testKey)); } catch(e){} }
 
 // --- рендер умов: проза лишається HTML-текстом (переноситься), а математика
-// в роздільниках $...$ / $$...$$ віддається в KaTeX. Переноси рядків — \n. ---
+// в роздільниках $...$ / $$...$$ віддається в KaTeX. Переноси рядків: \n. ---
 function escapeHtml(s){
   return String(s).replace(/[&<>]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
 }
@@ -204,6 +223,7 @@ async function doStart(){
   const group = $("in-group").value.trim();
   const key = state.testKey || $("in-key").value.trim();
   $("login-err").textContent = "";
+  if (!$("agree").checked){ $("login-err").textContent = "Підтвердьте дотримання академічної доброчесності."; return; }
   if (!name || !group){ $("login-err").textContent = "Вкажіть прізвище та групу."; return; }
   if (!key){ $("login-err").textContent = "Вкажіть ключ тесту."; return; }
   $("btn-start").disabled = true;
@@ -215,13 +235,13 @@ async function doStart(){
     saveSession();
     await loadCurrent();
   } catch(e){ $("login-err").textContent = "Немає зв'язку із сервером."; }
-  finally { $("btn-start").disabled = false; }
+  finally { $("btn-start").disabled = !$("agree").checked; }
 }
 
 async function loadCurrent(){
   let r;
   try { r = await apiGet(`/attempt/${state.attemptId}/current`); }
-  catch(e){ toast("Немає зв'язку — спробуйте ще раз"); return; }
+  catch(e){ toast("Немає зв'язку. Спробуйте ще раз"); return; }
   if (r.status === 404){ clearSession(); state.active=false; show("login");
     $("login-err").textContent = "Сесію не знайдено. Увійдіть знову."; return; }
   const data = await r.json();
@@ -237,7 +257,7 @@ function renderQuestion(data){
   else rb.classList.add("hidden");
 
   renderMath($("statement"), data.question.statement);
-  // Рисунок (inline SVG від сервера) — вставляємо напряму, без escape.
+  // Рисунок (inline SVG від сервера): вставляємо напряму, без escape.
   $("figure").innerHTML = data.question.svg || "";
 
   const box = $("parts"); box.innerHTML = "";
@@ -282,24 +302,63 @@ async function submit(){
   sendEvent("submit", {});
   let r;
   try { r = await apiPost(`/attempt/${state.attemptId}/answer`, {answers: collect()}); }
-  catch(e){ $("quiz-err").textContent = "Немає зв'язку — спробуйте ще раз.";
+  catch(e){ $("quiz-err").textContent = "Немає зв'язку. Спробуйте ще раз.";
             $("btn-submit").disabled=false; state.submitting=false; return; }
   const data = await r.json().catch(()=>({}));
   state.submitting = false;
   if (r.status === 404){ clearSession(); state.active=false; show("login");
     $("login-err").textContent = "Сесію не знайдено. Увійдіть знову."; return; }
   if (data.finished){ showDone(data.score, data.max_score); return; }
-  if (data.expired){ toast("Час вийшов — нове завдання"); }
+  if (data.expired){ toast("Час вийшов, нове завдання"); }
   await loadCurrent();
 }
 
 function showDone(score, max){
-  stopTimer(); state.active = false; clearSession();
+  stopTimer(); state.active = false;
   show("done");
   $("score").textContent = fmt(score); $("maxscore").textContent = fmt(max);
   const pct = max ? Math.round((score/max)*100) : 0;
   $("percent").textContent = `Результат: ${pct}%`;
+  loadReview();
 }
+
+async function loadReview(){
+  const box = $("review");
+  box.innerHTML = "";
+  let r;
+  try { r = await apiGet(`/attempt/${state.attemptId}/review`); }
+  catch(e){ clearSession(); return; }
+  if (!r.ok){ clearSession(); return; }
+  const d = await r.json().catch(()=>null);
+  clearSession();  // токен більше не потрібен: спроба завершена
+  if (!d || !d.questions){ return; }
+
+  const h = document.createElement("h2");
+  h.textContent = "Розбір відповідей";
+  box.appendChild(h);
+
+  const mark = {"повністю":["rev-ok","✓"], "частково":["rev-part","±"], "ні":["rev-no","✗"]};
+  d.questions.forEach((q, idx) => {
+    const row = document.createElement("div"); row.className = "rev-q";
+    const m = mark[q.verdict] || ["rev-no","✗"];
+    const badge = document.createElement("div");
+    badge.className = "rev-mark " + m[0]; badge.textContent = m[1];
+    const body = document.createElement("div"); body.className = "rev-body";
+    let html = `<b>Питання ${idx+1}.</b> ${fmt(q.score)} з ${fmt(q.max_score)} б.`;
+    const wrong = (q.parts || []).filter(p => !p.correct);
+    if (wrong.length){
+      const fixes = wrong.map(p => {
+        const yours = p.raw ? p.raw : "порожньо";
+        return `${p.label} ваша: ${yours}, правильна: ${p.expected}`;
+      }).join("; ");
+      html += `<div class="rev-fix">${escapeHtml(fixes)}</div>`;
+    }
+    body.innerHTML = html;
+    row.appendChild(badge); row.appendChild(body); box.appendChild(row);
+  });
+  if (window.renderMathInElement){ try { renderMathInElement(box, KATEX_OPTS); } catch(e){} }
+}
+
 function fmt(x){ return (Math.round((x||0)*100)/100).toString(); }
 
 // --- телеметрія фокуса вкладки ---
@@ -322,6 +381,8 @@ function init(){
   $("btn-start").addEventListener("click", doStart);
   $("in-group").addEventListener("keydown", (e)=>{ if(e.key==="Enter") doStart(); });
   $("btn-submit").addEventListener("click", submit);
+  // Кнопка старту активна лише коли позначено ознайомлення зі статутом.
+  $("agree").addEventListener("change", () => { $("btn-start").disabled = !$("agree").checked; });
 
   // Відновлення сесії після перезавантаження.
   const sess = state.testKey ? loadSession(state.testKey) : null;
