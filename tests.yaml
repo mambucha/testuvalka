@@ -79,14 +79,14 @@
     - domain_fraction        # область визначення дробу
     - domain_sqrt            # область визначення кореня
     - value_at_points        # значення функції в точках
-    - function_zeros         # нулі функції
-    - parity_code            # парність/непарність (код 1/2/3)
+    - value_solve            # при яких x f(x) = m
+    - function_zeros         # нулі квадратичної функції
+    - zeros_linear           # нуль лінійної функції
+    - range_endpoints        # значення на кінцях відрізка (область значень)
+    - parity_compute         # f(-x) як вираз (дослідження парності)
     - parity_values          # f(a), f(-a) для дослідження парності
     - symmetry_point         # симетрія точки (геом. зміст парності)
-    - monotonic_linear       # монотонність лінійної (код 1/2)
     - parabola_vertex_x      # абсциса вершини (зміна монотонності)
-    - parabola_min           # найменше значення (обмеженість знизу)
-    - bounded_trig           # межі значень A*sin(x)+B (обмеженість)
     - graph_vertex           # РИСУНОК: вершина параболи з графіка
     - graph_zeros            # РИСУНОК: нулі функції з графіка
   max_attempts: 2

@@ -26,13 +26,23 @@ def test_integrity_markers_present(client):
 
 
 def test_agree_checkbox_gates_start(client):
-    """Кнопка старту заблокована, доки не позначено ознайомлення; є чекбокс і
-    обробник, що керує станом кнопки."""
+    """Кнопка старту заблокована, доки не позначено згоду; є чекбокс і обробник,
+    що керує станом кнопки. Текст про академічну доброчесність."""
     html = client.get("/").text
     assert 'id="agree"' in html
     assert 'id="btn-start" disabled' in html  # стартова кнопка вимкнена
     assert '"agree").addEventListener("change"' in html
     assert '"agree").checked' in html  # doStart перевіряє згоду
+    assert "академічної" in html  # honor pledge про доброчесність
+
+
+def test_symbol_keyboard_present(client):
+    """Опційна екранна клавіатура символів: панель, кнопка виклику, вставка."""
+    html = client.get("/").text
+    assert 'id="kbd-panel"' in html
+    assert 'id="kbd-toggle"' in html
+    assert 'data-ins="sqrt()"' in html  # кнопка кореня
+    assert "function kbdInsert" in html
 
 
 def test_submit_button_is_wired(client):

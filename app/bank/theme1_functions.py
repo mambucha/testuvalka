@@ -1,12 +1,13 @@
 """Тема (шкільна математика): числова функція та її властивості.
 
-Область визначення й значень, нулі, значення в точці, монотонність, парність і
-непарність, обмеженість, читання графіка. Обернена функція навмисно не входить.
+Область визначення й значень, значення в точці, нулі, монотонність (через
+абсцису вершини), парність і непарність (через обчислення, без кодів). Обернена
+функція, тригонометрія та найбільше/найменше значення сюди не входять.
 
-Багато властивостей за природою не числа (проміжки, класифікація), тож зводимо
-їх до числових проміжних результатів: межі проміжків, координати вершини,
-значення в точках, а для класифікації (парність, монотонність) вводимо явний
-код з поясненням у самій умові. Усі відповіді цілі або прості дроби.
+Класифікаційні властивості зводимо до обчислень: парність досліджується через
+f(-x) (вираз) і значення f(a), f(-a); монотонність через абсцису вершини (точку
+її зміни). Числові відповіді цілі; парність дає вираз (для нього є екранна
+клавіатура). Таймінги підібрані під реальний темп 10-11-класника.
 
 Конвенція запису: проза текстом, математика в $...$ / $$...$$, переноси рядків \\n.
 """
@@ -24,7 +25,7 @@ from app.bank.plotting import coordinate_plane
 _x = sp.Symbol("x")
 
 
-def _poly_latex(expr) -> str:
+def _tex(expr) -> str:
     return sp.latex(expr)
 
 
@@ -33,46 +34,45 @@ def _poly_latex(expr) -> str:
 
 @template("domain_fraction")
 def _domain_fraction(rng: random.Random) -> Question:
-    """D дробу: точки, де знаменник (x-p)(x-q) перетворюється на нуль."""
+    """Область визначення дробу: точки, де знаменник перетворюється на нуль."""
     while True:
         p, q = rng.randint(-6, 6), rng.randint(-6, 6)
         if p != q:
             break
     lo, hi = min(p, q), max(p, q)
-    B, C = -(p + q), p * q  # знаменник x^2 + Bx + C
     r = rng.randint(-6, 6)
     denom = sp.expand((_x - p) * (_x - q))
     return Question(
         key="domain_fraction",
         statement=(
-            rf"Задана функція $y = \dfrac{{x {r:+d}}}{{{_poly_latex(denom)}}}$." "\n"
-            "Знайдіть точки, які НЕ входять в область визначення (де знаменник "
+            rf"Задана функція $y = \dfrac{{x {r:+d}}}{{{_tex(denom)}}}$." "\n"
+            "Знайдіть точки, які не входять в область визначення (де знаменник "
             "дорівнює нулю). Запишіть меншу і більшу."
         ),
         parts=[
             Part("x1", "менша =", lo, points=1),
             Part("x2", "більша =", hi, points=1),
         ],
-        seconds=110,
+        seconds=60,
         params={"p": p, "q": q, "r": r},
     )
 
 
 @template("domain_sqrt")
 def _domain_sqrt(rng: random.Random) -> Question:
-    """D кореня парного степеня: y = sqrt(a x + b), a>0 -> x >= -b/a."""
+    """Область визначення кореня: y = sqrt(a x + b), a>0, ліва межа x0 = -b/a."""
     a = rng.choice([1, 2, 3])
     x0 = rng.randint(-5, 5)
-    b = -a * x0  # щоб межа -b/a = x0 була цілою
+    b = -a * x0
     return Question(
         key="domain_sqrt",
         statement=(
             rf"Задана функція $y = \sqrt{{{a}x {b:+d}}}$." "\n"
-            "Область визначення має вигляд $[x_0; +\\infty)$. Знайдіть ліву межу "
-            "$x_0$ (найменше значення $x$)."
+            "Її область визначення має вигляд $[x_0; +\\infty)$. Знайдіть ліву "
+            "межу $x_0$ (найменше допустиме значення $x$)."
         ),
         parts=[Part("x0", "$x_0$ =", x0, points=1)],
-        seconds=70,
+        seconds=35,
         params={"a": a, "b": b},
     )
 
@@ -82,9 +82,8 @@ def _domain_sqrt(rng: random.Random) -> Question:
 
 @template("value_at_points")
 def _value_at_points(rng: random.Random) -> Question:
-    """Значення функції в двох точках."""
-    b = rng.randint(-6, 6)
-    c = rng.randint(-6, 6)
+    """Значення функції у двох точках."""
+    b, c = rng.randint(-6, 6), rng.randint(-6, 6)
     f = _x**2 + b * _x + c
     a1 = rng.choice([-3, -2, -1, 1, 2, 3])
     a2 = rng.choice([-3, -2, -1, 1, 2, 3])
@@ -93,15 +92,43 @@ def _value_at_points(rng: random.Random) -> Question:
     return Question(
         key="value_at_points",
         statement=(
-            rf"Задана функція $f(x) = {_poly_latex(f)}$." "\n"
+            rf"Задана функція $f(x) = {_tex(f)}$." "\n"
             rf"Обчисліть $f({a1})$ та $f({a2})$."
         ),
         parts=[
             Part("v1", rf"$f({a1})$ =", int(f.subs(_x, a1)), points=1),
             Part("v2", rf"$f({a2})$ =", int(f.subs(_x, a2)), points=1),
         ],
-        seconds=70,
+        seconds=45,
         params={"b": b, "c": c, "a1": a1, "a2": a2},
+    )
+
+
+@template("value_solve")
+def _value_solve(rng: random.Random) -> Question:
+    """При яких x функція набуває заданого значення m (два цілі розв'язки)."""
+    while True:
+        x1, x2 = rng.randint(-6, 6), rng.randint(-6, 6)
+        if x1 != x2:
+            break
+    lo, hi = min(x1, x2), max(x1, x2)
+    m = rng.randint(-4, 4)
+    b = -(x1 + x2)
+    c = x1 * x2 + m  # тоді f(x) = m рівносильне (x-x1)(x-x2)=0
+    f = _x**2 + b * _x + c
+    return Question(
+        key="value_solve",
+        statement=(
+            rf"Задана функція $f(x) = {_tex(f)}$." "\n"
+            rf"При яких значеннях $x$ виконується $f(x) = {m}$? Запишіть менший "
+            "і більший розв'язок."
+        ),
+        parts=[
+            Part("lo", "менший =", lo, points=1),
+            Part("hi", "більший =", hi, points=1),
+        ],
+        seconds=75,
+        params={"b": b, "c": c, "m": m},
     )
 
 
@@ -118,64 +145,103 @@ def _function_zeros(rng: random.Random) -> Question:
     return Question(
         key="function_zeros",
         statement=(
-            rf"Знайдіть нулі функції $y = {_poly_latex(f)}$ (значення $x$, де "
+            rf"Знайдіть нулі функції $y = {_tex(f)}$ (значення $x$, при яких "
             "$y = 0$). Запишіть менший і більший."
         ),
         parts=[
             Part("lo", "менший =", lo, points=1),
             Part("hi", "більший =", hi, points=1),
         ],
-        seconds=110,
+        seconds=60,
         params={"b": b, "c": c},
     )
 
 
-# --- парність ------------------------------------------------------------
-
-
-@template("parity_code")
-def _parity_code(rng: random.Random) -> Question:
-    """Класифікація парності через код 1/2/3 (пояснення в умові)."""
-    kind = rng.choice(["even", "odd", "general"])
-    if kind == "even":
-        f = rng.choice([1, 2]) * _x**4 + rng.choice([1, 2, 3]) * _x**2 + rng.randint(-4, 4)
-        code = 1
-    elif kind == "odd":
-        f = rng.choice([1, 2]) * _x**3 + rng.choice([1, 2, 3]) * _x
-        code = 2
-    else:
-        f = _x**2 + rng.choice([1, 2, 3]) * _x  # є і парний, і непарний доданок
-        code = 3
+@template("zeros_linear")
+def _zeros_linear(rng: random.Random) -> Question:
+    """Нуль лінійної функції: x = -b/k (цілий)."""
+    k = rng.choice([-3, -2, 2, 3, 4])
+    x0 = rng.randint(-5, 5)
+    b = -k * x0
     return Question(
-        key="parity_code",
+        key="zeros_linear",
         statement=(
-            rf"Дослідіть функцію $f(x) = {_poly_latex(f)}$ на парність." "\n"
-            "Введіть відповідь кодом: 1 — парна, 2 — непарна, "
-            "3 — загального вигляду (ні парна, ні непарна)."
+            rf"Знайдіть нуль функції $y = {k}x {b:+d}$ (значення $x$, при якому "
+            "$y = 0$)."
         ),
-        parts=[Part("code", "код =", code, points=1)],
-        seconds=120,
+        parts=[Part("x0", "$x$ =", x0, points=1)],
+        seconds=35,
+        params={"k": k, "b": b},
+    )
+
+
+@template("range_endpoints")
+def _range_endpoints(rng: random.Random) -> Question:
+    """Область значень лінійної функції на відрізку: значення на кінцях."""
+    k = rng.choice([-3, -2, -1, 1, 2, 3])
+    b = rng.randint(-5, 5)
+    a1 = rng.randint(-5, 1)
+    a2 = a1 + rng.randint(2, 5)
+    f = k * _x + b
+    return Question(
+        key="range_endpoints",
+        statement=(
+            rf"Функцію $y = {k}x {b:+d}$ розглядають на відрізку $[{a1}; {a2}]$." "\n"
+            rf"Обчисліть її значення на кінцях відрізка: $f({a1})$ та $f({a2})$ "
+            "(це межі області значень)."
+        ),
+        parts=[
+            Part("fa", rf"$f({a1})$ =", int(f.subs(_x, a1)), points=1),
+            Part("fb", rf"$f({a2})$ =", int(f.subs(_x, a2)), points=1),
+        ],
+        seconds=45,
+        params={"k": k, "b": b, "a1": a1, "a2": a2},
+    )
+
+
+# --- парність (через обчислення) ----------------------------------------
+
+
+@template("parity_compute")
+def _parity_compute(rng: random.Random) -> Question:
+    """Ключовий крок дослідження парності: знайти вираз f(-x)."""
+    kind = rng.choice(["odd", "even", "general"])
+    if kind == "odd":
+        f = rng.choice([1, 2]) * _x**3 + rng.choice([1, 2, 3]) * _x
+    elif kind == "even":
+        f = rng.choice([1, 2]) * _x**4 + rng.choice([1, 2, 3]) * _x**2 + rng.randint(1, 4)
+    else:
+        f = _x**2 + rng.choice([1, 2, 3]) * _x
+    fneg = sp.expand(f.subs(_x, -_x))
+    return Question(
+        key="parity_compute",
+        statement=(
+            rf"Для дослідження функції $f(x) = {_tex(f)}$ на парність знайдіть "
+            r"вираз $f(-x)$ (підставте $-x$ замість $x$ і спростіть)."
+        ),
+        parts=[Part("fneg", "$f(-x)$ =", fneg, kind="expr", points=1)],
+        seconds=55,
         params={"kind": kind},
     )
 
 
 @template("parity_values")
 def _parity_values(rng: random.Random) -> Question:
-    """Обчислювальний крок дослідження парності: f(a) і f(-a)."""
+    """Дослідження парності через значення: f(a) та f(-a)."""
     b = rng.choice([1, 2, 3])
-    f = _x**3 - b * _x  # непарна, але тут лише рахуємо значення
+    f = _x**3 - b * _x
     a = rng.choice([2, 3])
     return Question(
         key="parity_values",
         statement=(
-            rf"Для дослідження парності функції $f(x) = {_poly_latex(f)}$ "
-            rf"обчисліть $f({a})$ та $f(-{a})$."
+            rf"Для функції $f(x) = {_tex(f)}$ обчисліть $f({a})$ та $f(-{a})$ "
+            "(порівняння цих значень показує парність)."
         ),
         parts=[
             Part("fa", rf"$f({a})$ =", int(f.subs(_x, a)), points=1),
             Part("fna", rf"$f(-{a})$ =", int(f.subs(_x, -a)), points=1),
         ],
-        seconds=75,
+        seconds=50,
         params={"b": b, "a": a},
     )
 
@@ -198,90 +264,31 @@ def _symmetry_point(rng: random.Random) -> Question:
             Part("x", "$x$ =", nx, points=1),
             Part("y", "$y$ =", ny, points=1),
         ],
-        seconds=50,
+        seconds=30,
         params={"p": p, "q": q, "about": about},
     )
 
 
-# --- монотонність, обмеженість, вершина ----------------------------------
-
-
-@template("monotonic_linear")
-def _monotonic_linear(rng: random.Random) -> Question:
-    """Монотонність лінійної функції через код 1/2 (знак кутового коефіцієнта)."""
-    k = rng.choice([-4, -3, -2, -1, 1, 2, 3, 4])
-    b = rng.randint(-6, 6)
-    code = 1 if k > 0 else 2
-    return Question(
-        key="monotonic_linear",
-        statement=(
-            rf"Задана функція $y = {k}x {b:+d}$." "\n"
-            "Визначте характер монотонності. Введіть: 1 — зростає, 2 — спадає."
-        ),
-        parts=[Part("code", "код =", code, points=1)],
-        seconds=50,
-        params={"k": k, "b": b},
-    )
+# --- монотонність через вершину -----------------------------------------
 
 
 @template("parabola_vertex_x")
 def _parabola_vertex_x(rng: random.Random) -> Question:
     """Абсциса вершини параболи: точка, де змінюється монотонність."""
     a = rng.choice([1, 1, 2, -1])
-    h = rng.randint(-4, 4)  # абсциса вершини (ціла)
+    h = rng.randint(-4, 4)
     b = -2 * a * h
     c = rng.randint(-5, 5)
     f = a * _x**2 + b * _x + c
     return Question(
         key="parabola_vertex_x",
         statement=(
-            rf"Знайдіть абсцису вершини параболи $y = {_poly_latex(f)}$ "
-            "(точку, у якій змінюється монотонність), за формулою "
-            r"$x_в = -\dfrac{b}{2a}$."
+            rf"Знайдіть абсцису вершини параболи $y = {_tex(f)}$ за формулою "
+            r"$x_в = -\dfrac{b}{2a}$ (у цій точці змінюється монотонність)."
         ),
         parts=[Part("xv", "$x_в$ =", h, points=1)],
-        seconds=60,
+        seconds=40,
         params={"a": a, "b": b, "c": c},
-    )
-
-
-@template("parabola_min")
-def _parabola_min(rng: random.Random) -> Question:
-    """Обмеженість: найменше значення параболи вітками вгору (y вершини)."""
-    h = rng.randint(-3, 3)
-    k = rng.randint(-5, 5)
-    b = -2 * h
-    c = k + h * h  # з y = (x-h)^2 + k
-    f = _x**2 + b * _x + c
-    return Question(
-        key="parabola_min",
-        statement=(
-            rf"Функція $y = {_poly_latex(f)}$ обмежена знизу. Знайдіть її "
-            "найменше значення (ординату вершини)."
-        ),
-        parts=[Part("ymin", "$y_{min}$ =", k, points=1)],
-        seconds=80,
-        params={"b": b, "c": c},
-    )
-
-
-@template("bounded_trig")
-def _bounded_trig(rng: random.Random) -> Question:
-    """Обмеженість: найбільше і найменше значення y = A*sin(x) + B."""
-    A = rng.choice([2, 3, 4, 5])
-    B = rng.randint(-4, 4)
-    return Question(
-        key="bounded_trig",
-        statement=(
-            rf"Функція $y = {A}\sin(x) {B:+d}$ обмежена. Знайдіть її найбільше "
-            "та найменше значення (врахуйте, що $-1 \\le \\sin(x) \\le 1$)."
-        ),
-        parts=[
-            Part("ymax", "найбільше =", B + A, points=1),
-            Part("ymin", "найменше =", B - A, points=1),
-        ],
-        seconds=70,
-        params={"A": A, "B": B},
     )
 
 
@@ -293,12 +300,7 @@ def _graph_vertex(rng: random.Random) -> Question:
     """РИСУНОК: парабола; зчитати координати вершини (x і y)."""
     a = rng.choice([1, -1])
     h = rng.randint(-3, 3)
-    k = rng.randint(-4, 4) if a == 1 else rng.randint(-4, 4)
-    # тримаємо вершину видимою і вітки в межах
-    if a == 1:
-        k = rng.randint(-4, 1)
-    else:
-        k = rng.randint(-1, 4)
+    k = rng.randint(-4, 1) if a == 1 else rng.randint(-1, 4)
     svg = coordinate_plane(parabolas=[(a, h, k)], points=[(h, k)])
     return Question(
         key="graph_vertex",
@@ -310,7 +312,7 @@ def _graph_vertex(rng: random.Random) -> Question:
             Part("x", "$x$ =", h, points=1),
             Part("y", "$y$ =", k, points=1),
         ],
-        seconds=100,
+        seconds=45,
         params={"a": a, "h": h, "k": k},
         svg=svg,
     )
@@ -324,17 +326,12 @@ def _graph_zeros(rng: random.Random) -> Question:
         if x1 != x2:
             break
     lo, hi = min(x1, x2), max(x1, x2)
-    a = sp.Rational(1, 1)
-    h = sp.Rational(lo + hi, 2)
-    # y = a(x-x1)(x-x2); вершина (h, k); підберемо a так, щоб вітки не тікали
-    k = -((hi - lo) / 2) ** 2  # для a=1
-    if abs(k) > 6:  # завузька/заширока — стиснемо
-        a = sp.Rational(1, 2)
-        k = k / 2
-    svg = coordinate_plane(
-        parabolas=[(float(a), float(h), float(k))],
-        points=[(lo, 0), (hi, 0)],
-    )
+    a = 1.0
+    h = (lo + hi) / 2
+    k = -((hi - lo) / 2) ** 2
+    if abs(k) > 6:
+        a, k = 0.5, k / 2
+    svg = coordinate_plane(parabolas=[(a, h, k)], points=[(lo, 0), (hi, 0)])
     return Question(
         key="graph_zeros",
         statement=(
@@ -345,7 +342,7 @@ def _graph_zeros(rng: random.Random) -> Question:
             Part("lo", "менший =", lo, points=1),
             Part("hi", "більший =", hi, points=1),
         ],
-        seconds=100,
+        seconds=40,
         params={"x1": lo, "x2": hi},
         svg=svg,
     )

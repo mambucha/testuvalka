@@ -38,6 +38,14 @@
   .statement { font-size:1.15rem; margin:14px 0 6px; }
   #figure { margin:8px 0 4px; text-align:center; }
   #figure:empty { display:none; }
+  .kbd-toggle { margin-top:12px; font-size:.85rem; font-weight:600; padding:6px 12px;
+                border:1px solid var(--line); border-radius:8px; background:#eef1f5;
+                color:var(--ink); cursor:pointer; width:auto; }
+  .kbd-panel { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .kbd-panel button { font-size:1rem; min-width:42px; padding:9px 11px; width:auto;
+                      border:1px solid var(--line); border-radius:8px; background:#fff;
+                      color:var(--ink); cursor:pointer; font-weight:500; }
+  .kbd-panel button:active { background:#eef3ff; }
   .integrity { margin:16px 0 4px; padding:10px 12px; font-size:.85rem;
                background:#fff7ed; border:1px solid #f0d7ad; border-radius:8px; color:#7a5312; }
   .integrity-line { margin-top:14px; padding-top:10px; border-top:1px solid var(--line);
@@ -109,6 +117,19 @@
     <div id="statement" class="statement"></div>
     <div id="figure"></div>
     <div id="parts"></div>
+    <button type="button" id="kbd-toggle" class="kbd-toggle" hidden>⌨ Символи</button>
+    <div id="kbd-panel" class="kbd-panel" hidden>
+      <button type="button" data-ins="x">x</button>
+      <button type="button" data-ins="^">x<sup>n</sup></button>
+      <button type="button" data-ins="x^2">x²</button>
+      <button type="button" data-ins="x^3">x³</button>
+      <button type="button" data-ins="(">(</button>
+      <button type="button" data-ins=")">)</button>
+      <button type="button" data-ins="/">/</button>
+      <button type="button" data-ins="-">−</button>
+      <button type="button" data-ins="sqrt()" data-caret="-1">√</button>
+      <button type="button" data-act="back">⌫</button>
+    </div>
     <button id="btn-submit">Відповісти</button>
     <div id="quiz-err" class="err"></div>
     <div class="integrity-line">
@@ -136,7 +157,7 @@ const api = (p) => "/api" + p;
 const state = {
   testKey: null, attemptId: null, token: null,
   seconds: 0, total: 0, tick: null, shownAt: 0, firstInput: false,
-  active: false, submitting: false,
+  active: false, submitting: false, lastInput: null,
 };
 
 // --- сесія в localStorage (для відновлення після перезавантаження) ---
@@ -272,9 +293,14 @@ function renderQuestion(data){
     inp.addEventListener("input", onFirstInput);
     inp.addEventListener("paste", () => sendEvent("paste", {part:p.key}));
     inp.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+    inp.addEventListener("focus", () => { state.lastInput = inp; });
     wrap.appendChild(lbl); wrap.appendChild(inp); box.appendChild(wrap);
     if (i === 0) setTimeout(() => inp.focus(), 30);
   });
+  // Клавіатура символів: показуємо кнопку виклику, панель ховаємо на новому питанні.
+  state.lastInput = null;
+  $("kbd-toggle").hidden = false;
+  $("kbd-panel").hidden = true;
   $("quiz-err").textContent = "";
   $("btn-submit").disabled = false;
   startTimer(data.seconds_left);
@@ -295,6 +321,41 @@ function collect(){
 }
 
 function autoSubmit(){ if (state.active && !state.submitting) submit(); }
+
+// --- екранна клавіатура символів (опційна) ---
+function kbdTarget(){
+  // Останнє активне поле; якщо жодного, беремо перше поле питання.
+  if (state.lastInput && document.body.contains(state.lastInput)) return state.lastInput;
+  return document.querySelector("#parts input");
+}
+function kbdInsert(text, caret){
+  const inp = kbdTarget();
+  if (!inp){ return; }
+  inp.focus();
+  const s = inp.selectionStart ?? inp.value.length;
+  const e = inp.selectionEnd ?? inp.value.length;
+  inp.value = inp.value.slice(0, s) + text + inp.value.slice(e);
+  let pos = s + text.length + (caret || 0);
+  pos = Math.max(0, Math.min(pos, inp.value.length));
+  inp.setSelectionRange(pos, pos);
+  inp.dispatchEvent(new Event("input"));
+  state.lastInput = inp;
+}
+function kbdBackspace(){
+  const inp = kbdTarget();
+  if (!inp){ return; }
+  inp.focus();
+  const s = inp.selectionStart, e = inp.selectionEnd;
+  if (s === e && s > 0){
+    inp.value = inp.value.slice(0, s - 1) + inp.value.slice(e);
+    inp.setSelectionRange(s - 1, s - 1);
+  } else if (s !== e){
+    inp.value = inp.value.slice(0, s) + inp.value.slice(e);
+    inp.setSelectionRange(s, s);
+  }
+  inp.dispatchEvent(new Event("input"));
+  state.lastInput = inp;
+}
 
 async function submit(){
   if (state.submitting || !state.active) return;
@@ -381,8 +442,26 @@ function init(){
   $("btn-start").addEventListener("click", doStart);
   $("in-group").addEventListener("keydown", (e)=>{ if(e.key==="Enter") doStart(); });
   $("btn-submit").addEventListener("click", submit);
-  // Кнопка старту активна лише коли позначено ознайомлення зі статутом.
+  // Кнопка старту активна лише коли позначено дотримання доброчесності.
   $("agree").addEventListener("change", () => { $("btn-start").disabled = !$("agree").checked; });
+
+  // Екранна клавіатура символів.
+  $("kbd-toggle").addEventListener("click", () => {
+    $("kbd-panel").hidden = !$("kbd-panel").hidden;
+  });
+  const panel = $("kbd-panel");
+  // mousedown не дає полю втратити фокус і виділення до вставки.
+  panel.addEventListener("mousedown", (e) => {
+    if (e.target.closest("button")) e.preventDefault();
+  });
+  panel.addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+    if (btn.dataset.act === "back"){ kbdBackspace(); return; }
+    if (btn.dataset.ins != null){
+      kbdInsert(btn.dataset.ins, parseInt(btn.dataset.caret || "0", 10));
+    }
+  });
 
   // Відновлення сесії після перезавантаження.
   const sess = state.testKey ? loadSession(state.testKey) : null;
