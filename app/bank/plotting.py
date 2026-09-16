@@ -22,14 +22,16 @@ def _py(y: float) -> float:
     return round(_ORIGIN - y * _UNIT, 1)
 
 
-def coordinate_plane(lines=None, points=None, labeled_ticks=True) -> str:
+def coordinate_plane(lines=None, points=None, parabolas=None, labeled_ticks=True) -> str:
     """Координатна площина з осями, сіткою та об'єктами.
 
-    lines:  список прямих як (k, b) — рисуємо y = k*x + b через усе полотно.
-    points: список (x, y[, підпис]) — позначаємо кружечками.
+    lines:     список прямих як (k, b) — рисуємо y = k*x + b через усе полотно.
+    parabolas: список парабол як (a, h, k) — рисуємо y = a*(x-h)^2 + k.
+    points:    список (x, y[, підпис]) — позначаємо кружечками.
     Повертає рядок <svg>…</svg>, придатний для inline-вставки.
     """
     lines = lines or []
+    parabolas = parabolas or []
     points = points or []
     el: list[str] = []
 
@@ -61,6 +63,21 @@ def coordinate_plane(lines=None, points=None, labeled_ticks=True) -> str:
             if i % 2 == 0:
                 el.append(f'<text x="{xt}" y="{_ORIGIN+15}" font-size="10.5" fill="#6b7684" text-anchor="middle">{i}</text>')
                 el.append(f'<text x="{_ORIGIN-6}" y="{yt+4}" font-size="10.5" fill="#6b7684" text-anchor="end">{i}</text>')
+
+    # --- параболи (y = a*(x-h)^2 + k); polyline по точках у межах видимості ---
+    for a, h, k in parabolas:
+        pts = []
+        x = -_HALF
+        while x <= _HALF + 1e-9:
+            y = a * (x - h) ** 2 + k
+            if abs(y) <= _HALF + 0.5:
+                pts.append(f"{_px(x)},{_py(y)}")
+            x += 0.2
+        if pts:
+            el.append(
+                f'<polyline points="{" ".join(pts)}" fill="none" '
+                'stroke="#2f6df6" stroke-width="2.4"/>'
+            )
 
     # --- прямі (y = k*x + b); малюємо від краю до краю, svg обріже рамкою ---
     for k, b in lines:
