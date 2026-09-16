@@ -63,7 +63,7 @@ def test_current_is_deterministic_and_leaks_no_answers(student):
     assert r1["ordinal"] == r2["ordinal"] == 0
 
     q = r1["question"]
-    assert set(q.keys()) == {"key", "statement", "seconds", "parts"}
+    assert set(q.keys()) == {"key", "statement", "seconds", "svg", "parts"}
     for p in q["parts"]:
         assert set(p.keys()) == {"key", "label", "kind", "points"}
     assert "answer" not in str(r1).lower()

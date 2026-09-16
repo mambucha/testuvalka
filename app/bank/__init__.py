@@ -13,3 +13,4 @@ app.grading), тож усі шаблони банку зареєстровані
 
 from app.bank import algebra_lines  # noqa: F401
 from app.bank import lecture1_linear_algebra  # noqa: F401
+from app.bank import lecture2_lines  # noqa: F401

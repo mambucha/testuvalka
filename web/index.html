@@ -36,6 +36,8 @@
   .badge { display:inline-block; font-size:.78rem; background:#fdecec; color:var(--warn);
            border-radius:99px; padding:2px 10px; margin-left:8px; }
   .statement { font-size:1.15rem; margin:14px 0 6px; }
+  #figure { margin:8px 0 4px; text-align:center; }
+  #figure:empty { display:none; }
   .part { margin-top:14px; }
   .part .lbl { font-size:1rem; margin-bottom:4px; }
   .err { color:var(--warn); margin-top:12px; min-height:1.2em; }
@@ -78,6 +80,7 @@
     </div>
     <div class="bar"><i id="bar" style="width:100%"></i></div>
     <div id="statement" class="statement"></div>
+    <div id="figure"></div>
     <div id="parts"></div>
     <button id="btn-submit">Відповісти</button>
     <div id="quiz-err" class="err"></div>
@@ -221,6 +224,8 @@ function renderQuestion(data){
   else rb.classList.add("hidden");
 
   renderMath($("statement"), data.question.statement);
+  // Рисунок (inline SVG від сервера) — вставляємо напряму, без escape.
+  $("figure").innerHTML = data.question.svg || "";
 
   const box = $("parts"); box.innerHTML = "";
   state.firstInput = false; state.shownAt = Date.now();

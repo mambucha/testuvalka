@@ -45,3 +45,25 @@
     - cramer_3x3                         # Крамер 3×3, ЧАСТКОВО (Δ + одна невідома)
   max_attempts: 2
   max_reissues: 2
+
+# Лекція 2: рівняння прямої на площині та в просторі.
+# 10 питань по 0,5 бала -> усього 5. У банку 11 шаблонів (беремо 10), один із
+# них — з рисунком (line_from_graph), тож він трапляється приблизно 1 з 10.
+- key: lecture2
+  title: "Лекція 2. Рівняння прямої на площині та в просторі"
+  question_count: 10
+  points_per_question: 0.5
+  bank:
+    - general_line_C                     # загальне рівняння: знайти C
+    - slope_intercept_from_general       # загальне -> y = kx + b
+    - line_intercepts                    # відрізки на осях
+    - distance_point_to_line             # відстань від точки до прямої
+    - point_substitution                 # підстановка точки в рівняння
+    - direction_vector_2pts              # напрямний вектор (площина)
+    - space_direction_vector             # напрямний вектор (простір)
+    - dot_product_3d                     # скалярний добуток
+    - perpendicular_parallel_slope       # k паралельної / перпендикулярної
+    - line_through_two_points            # пряма через дві точки (k, b, y0)
+    - line_from_graph                    # РИСУНОК: зчитати y = kx + b з графіка
+  max_attempts: 2
+  max_reissues: 2

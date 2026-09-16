@@ -78,6 +78,9 @@ class Question:
     parts: list[Part]
     seconds: int = 180
     params: dict[str, Any] = field(default_factory=dict)  # для логів і розбору
+    # Необов'язковий рисунок до умови: готовий inline-SVG, згенерований на
+    # сервері з параметрів задачі (еталонів у ньому немає). None — без рисунка.
+    svg: str | None = None
 
     @property
     def max_score(self) -> float:
@@ -89,6 +92,7 @@ class Question:
             "key": self.key,
             "statement": self.statement,
             "seconds": self.seconds,
+            "svg": self.svg,
             "parts": [
                 {"key": p.key, "label": p.label, "kind": p.kind, "points": p.points}
                 for p in self.parts

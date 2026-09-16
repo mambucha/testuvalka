@@ -33,6 +33,7 @@ class QuestionPublic(BaseModel):
     key: str
     statement: str
     seconds: int
+    svg: str | None = None  # необов'язковий рисунок (inline SVG)
     parts: list[PartPublic]
 
 
