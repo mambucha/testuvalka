@@ -15,6 +15,15 @@ def test_api_routes_take_priority_over_static(client):
     assert r.json().get("detail")  # JSON від застосунку, не сторінка
 
 
+def test_integrity_markers_present(client):
+    """Маркери академічної доброчесності: декларація на вході + рядок під питанням
+    (останній завжди в кадрі скріншота)."""
+    html = client.get("/").text
+    assert 'class="integrity"' in html  # декларація на вході
+    assert 'class="integrity-line"' in html  # рядок під питанням
+    assert "ШІ" in html  # згадка про ШІ-помічників
+
+
 def test_submit_button_is_wired(client):
     """Регрес: кнопка «Відповісти» мусить мати обробник кліку — інакше клік по
     ній нічого не робить (submit спрацьовував лише по Enter)."""

@@ -38,6 +38,10 @@
   .statement { font-size:1.15rem; margin:14px 0 6px; }
   #figure { margin:8px 0 4px; text-align:center; }
   #figure:empty { display:none; }
+  .integrity { margin:16px 0 4px; padding:10px 12px; font-size:.85rem;
+               background:#fff7ed; border:1px solid #f0d7ad; border-radius:8px; color:#7a5312; }
+  .integrity-line { margin-top:14px; padding-top:10px; border-top:1px solid var(--line);
+                    font-size:.75rem; color:var(--muted); text-align:center; }
   .part { margin-top:14px; }
   .part .lbl { font-size:1rem; margin-bottom:4px; }
   .err { color:var(--warn); margin-top:12px; min-height:1.2em; }
@@ -63,6 +67,11 @@
     <input id="in-group" type="text" placeholder="КН-11" />
     <label id="lbl-key" for="in-key" class="hidden">Ключ тесту</label>
     <input id="in-key" type="text" class="hidden" placeholder="demo" />
+    <div class="integrity">
+      <strong>Оцінюване завдання.</strong> Виконуйте самостійно. Правила курсу
+      не дозволяють сторонньої допомоги — зокрема інших осіб та ШІ-помічників
+      (чат-боти, агенти). Варіант у кожного індивідуальний.
+    </div>
     <button id="btn-start">Почати</button>
     <div id="login-err" class="err"></div>
     <p class="muted" style="font-size:.82rem; margin-top:14px">
@@ -84,6 +93,10 @@
     <div id="parts"></div>
     <button id="btn-submit">Відповісти</button>
     <div id="quiz-err" class="err"></div>
+    <div class="integrity-line">
+      Оцінюване завдання · стороння допомога, зокрема ШІ-помічники, не дозволена
+      правилами курсу.
+    </div>
   </section>
 
   <!-- Підсумок -->
