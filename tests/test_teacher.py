@@ -11,18 +11,21 @@ H = {"X-Teacher-Token": TEACHER_TOKEN}
 
 
 def _finish_attempt_with_paste(client):
-    """Пройти демо-тест до кінця, дорогою залогувавши подію paste."""
+    """Пройти демо-тест до кінця, дорогою залогувавши подію paste (яка ще й
+    перевидає перше питання з новими числами) і відповідаючи правильно з
+    урахуванням поточного reissue."""
     s = StudentClient(client)
     s.start()
-    first = True
+    pasted = False
     while True:
         cur = s.current_json()
         if cur.get("finished"):
             break
-        if first:
+        if not pasted:
             s.event("paste", {"part": cur["question"]["parts"][0]["key"]})
-            first = False
-        s.answer(correct_answers(cur["question"]["key"]))
+            pasted = True
+            continue  # питання перевидане -> перезапитуємо
+        s.answer(correct_answers(cur["question"]["key"], reissue=cur["reissue"]))
     return s
 
 

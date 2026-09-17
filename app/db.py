@@ -38,3 +38,18 @@ def init_db() -> None:
     from app import models  # noqa: F401  — реєстрація моделей у метаданих
 
     Base.metadata.create_all(engine)
+    _migrate()
+
+
+def _migrate() -> None:
+    """Легкі ідемпотентні міграції для колонок, доданих після першого розгортання
+    (create_all не змінює наявні таблиці, а на проді БД уже з даними студентів)."""
+    from sqlalchemy import inspect, text
+
+    insp = inspect(engine)
+    cols = {c["name"] for c in insp.get_columns("attempt_questions")}
+    with engine.begin() as conn:
+        if "timeout_reissues" not in cols:
+            conn.execute(
+                text("ALTER TABLE attempt_questions ADD COLUMN timeout_reissues INTEGER NOT NULL DEFAULT 0")
+            )

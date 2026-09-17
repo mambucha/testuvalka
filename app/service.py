@@ -170,8 +170,10 @@ def _handle_expiry(db: Session, attempt: models.Attempt, aq: models.AttemptQuest
         "expire",
         {"ordinal": aq.ordinal, "question_key": aq.question_key, "reissue": aq.reissue},
     )
-    if aq.reissue < attempt.test.max_reissues:
+    # Проти ліміту -> 0 рахуються ЛИШЕ перевидання через вихід за часом.
+    if aq.timeout_reissues < attempt.test.max_reissues:
         aq.reissue += 1
+        aq.timeout_reissues += 1
         aq.started_at = None
         aq.deadline_at = None
         _log(db, attempt.id, "reissue", {"ordinal": aq.ordinal, "reissue": aq.reissue})
@@ -179,6 +181,30 @@ def _handle_expiry(db: Session, attempt: models.Attempt, aq: models.AttemptQuest
         aq.score = 0.0
         aq.submitted_at = utcnow()
         _log(db, attempt.id, "zero_after_reissues", {"ordinal": aq.ordinal})
+    return True
+
+
+# Запобіжник від нескінченного циклу перевидань за доброчесністю (глюк/зловживання).
+_MAX_INTEGRITY_REISSUES = 15
+
+
+def _reissue_integrity(db: Session, attempt: models.Attempt, aq: models.AttemptQuestion, reason: str) -> bool:
+    """Перевидання питання через порушення доброчесності (вихід із вкладки або
+    вставка): нові числа й ПОВНИЙ час. НЕ рахується проти ліміту max_reissues,
+    тобто балами не карає — сумлінний просто перерозв'язує заново. Списувачу ж
+    підглянуте/вставлене стає марним, бо числа інші.
+
+    Спрацьовує лише для поточного виданого, ще не зданого питання.
+    """
+    if aq.started_at is None or aq.submitted_at is not None:
+        return False
+    integrity_done = aq.reissue - aq.timeout_reissues
+    if integrity_done >= _MAX_INTEGRITY_REISSUES:
+        return False  # запобіжник: не перевидаємо нескінченно
+    aq.reissue += 1
+    aq.started_at = None
+    aq.deadline_at = None
+    _log(db, attempt.id, "reissue_integrity", {"ordinal": aq.ordinal, "reason": reason, "reissue": aq.reissue})
     return True
 
 
@@ -439,10 +465,21 @@ def submit_answer(
 
 def log_event(
     db: Session, attempt_id: int, token: str, type_: str, payload: dict
-) -> None:
+) -> dict:
+    """Логує подію телеметрії. Події "away" (тривалий вихід із вкладки) і "paste"
+    (вставка) під час активного питання перевидають його з новими числами й
+    повним часом (захист доброчесності). Повертає {"reissued": bool}: якщо True,
+    клієнт має перезапитати /current."""
     attempt = _authorize(db, attempt_id, token)
     _log(db, attempt.id, type_, payload)
+
+    reissued = False
+    if type_ in ("away", "paste") and attempt.status == "active":
+        aq = _current_question(attempt)
+        if aq is not None:
+            reissued = _reissue_integrity(db, attempt, aq, reason=type_)
     db.commit()
+    return {"reissued": reissued}
 
 
 def review_attempt(db: Session, attempt_id: int, token: str) -> dict:

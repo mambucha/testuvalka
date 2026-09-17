@@ -77,7 +77,12 @@ class AttemptQuestion(Base):
     attempt_id: Mapped[int] = mapped_column(ForeignKey("attempts.id"), index=True)
     ordinal: Mapped[int] = mapped_column(Integer)
     question_key: Mapped[str] = mapped_column(String)
+    # reissue — загальна кількість перевидань (для seed: щоразу нові числа).
     reissue: Mapped[int] = mapped_column(Integer, default=0)
+    # timeout_reissues — лише перевидання ЧЕРЕЗ ВИХІД ЗА ЧАСОМ; саме вони рахуються
+    # проти ліміту max_reissues -> 0 балів. Перевидання через вихід із вкладки чи
+    # вставку (доброчесність) НЕ наближають до нуля — студент лише перерозв'язує.
+    timeout_reissues: Mapped[int] = mapped_column(Integer, default=0)
     # Дедлайн проставляється НА СЕРВЕРІ в момент видачі питання (п. 6.3, 5.7).
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     deadline_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

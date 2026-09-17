@@ -100,7 +100,7 @@
     <label for="in-name">Прізвище та ім'я</label>
     <input id="in-name" type="text" autocomplete="name" placeholder="Іваненко Іван" />
     <label for="in-group">Група</label>
-    <input id="in-group" type="text" placeholder="КН-11" />
+    <input id="in-group" type="text" placeholder="ТХ / ПТ / ГРС" />
     <label id="lbl-key" for="in-key" class="hidden">Ключ тесту</label>
     <input id="in-key" type="text" class="hidden" placeholder="demo" />
     <div class="integrity">
@@ -238,6 +238,24 @@ function sendEvent(type, payload){
     body: JSON.stringify({type, payload: payload||{}}), keepalive:true,
   }).catch(()=>{});
 }
+// Подія, відповідь якої важлива (може повернути {reissued:true} -> перезапит питання).
+async function sendEventAwait(type, payload){
+  if (!state.attemptId) return null;
+  try {
+    const r = await apiPost(`/attempt/${state.attemptId}/event`, {type, payload: payload||{}});
+    return await r.json().catch(() => null);
+  } catch(e){ return null; }
+}
+// Питання перевидане через вихід/вставку: повідомити й показати нове (з новими числами й повним часом).
+async function handleIntegrity(type, payload){
+  const r = await sendEventAwait(type, payload);
+  if (r && r.reissued){
+    toast(type === "paste"
+      ? "Вставлення заборонене. Питання оновлено з новими числами"
+      : "Вихід із тесту зафіксовано. Питання оновлено з новими числами");
+    await loadCurrent();
+  }
+}
 
 // --- таймер (лише індикатор; дедлайн вирішує сервер) ---
 function stopTimer(){ if (state.tick){ clearInterval(state.tick); state.tick=null; } }
@@ -329,7 +347,7 @@ function renderQuestion(data){
     inp.type = "text"; inp.id = "part-" + p.key; inp.autocomplete = "off";
     inp.setAttribute("autocapitalize","off"); inp.setAttribute("spellcheck","false");
     inp.addEventListener("input", onFirstInput);
-    inp.addEventListener("paste", () => sendEvent("paste", {part:p.key}));
+    inp.addEventListener("paste", () => handleIntegrity("paste", {part:p.key}));
     inp.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
     inp.addEventListener("focus", () => { state.lastInput = inp; });
     wrap.appendChild(lbl); wrap.appendChild(inp);
@@ -504,9 +522,18 @@ async function loadReview(){
 function fmt(x){ return (Math.round((x||0)*100)/100).toString(); }
 
 // --- телеметрія фокуса вкладки ---
-document.addEventListener("visibilitychange", () => {
+let _awayAt = 0;
+document.addEventListener("visibilitychange", async () => {
   if (!state.active) return;
-  sendEvent(document.hidden ? "blur" : "focus", {});
+  if (document.hidden){ _awayAt = Date.now(); sendEvent("blur", {}); return; }
+  // Повернувся у вкладку.
+  if (!_awayAt) return;
+  const away = Date.now() - _awayAt;
+  _awayAt = 0;
+  sendEvent("focus", {ms: away});
+  // Короткі стрибки фокуса (випадкове сповіщення тощо) ігноруємо; реальний
+  // відхід (> 2 с) -> питання перевидається з новими числами й повним часом.
+  if (away > 2000){ await handleIntegrity("away", {ms: away}); }
 });
 // --- попередження при спробі закрити вкладку під час тесту ---
 window.addEventListener("beforeunload", (e) => {

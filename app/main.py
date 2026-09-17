@@ -123,15 +123,16 @@ def review(
     return service.review_attempt(db, attempt_id, token)
 
 
-@app.post("/api/attempt/{attempt_id}/event", status_code=204)
+@app.post("/api/attempt/{attempt_id}/event")
 def event(
     attempt_id: int,
     body: schemas.EventIn,
     db: Session = Depends(get_db),
     token: str = Depends(_token),
 ):
-    service.log_event(db, attempt_id, token, body.type, body.payload)
-    return Response(status_code=204)
+    # Повертає {"reissued": bool}: True -> клієнт перезапитує /current
+    # (питання перевидане з новими числами через вихід із вкладки або вставку).
+    return service.log_event(db, attempt_id, token, body.type, body.payload)
 
 
 # --- Кабінет викладача ---------------------------------------------------

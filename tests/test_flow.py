@@ -158,10 +158,11 @@ def test_carry_gives_partial_credit(student):
     assert final["score"] == 8.0
 
 
-def test_event_logging_returns_204(student):
+def test_event_logging_returns_ok(student):
     student.start()
-    r = student.event("paste", {"part": "det", "len": 3})
-    assert r.status_code == 204
+    r = student.event("resume", {"note": "x"})
+    assert r.status_code == 200
+    assert r.json()["reissued"] is False  # нейтральна подія нічого не перевидає
 
 
 def test_student_review_after_finish(student):
