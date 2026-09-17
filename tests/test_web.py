@@ -37,12 +37,23 @@ def test_agree_checkbox_gates_start(client):
 
 
 def test_symbol_keyboard_present(client):
-    """Опційна екранна клавіатура символів: панель, кнопка виклику, вставка."""
+    """Опційна екранна клавіатура: панель, кнопка виклику, цифри й символи."""
     html = client.get("/").text
     assert 'id="kbd-panel"' in html
     assert 'id="kbd-toggle"' in html
     assert 'data-ins="sqrt()"' in html  # кнопка кореня
+    assert 'data-ins="7"' in html  # цифровий ряд
+    assert 'data-act="clear"' in html  # кнопка «стерти все»
     assert "function kbdInsert" in html
+    assert "function kbdClear" in html
+
+
+def test_live_math_preview_present(client):
+    """Живий математичний прев'ю введення (учень бачить формулу, не сирий текст)."""
+    html = client.get("/").text
+    assert "function renderExprPreview" in html
+    assert "math-preview" in html  # клас прев'ю (створюється у JS)
+    assert 'p.kind === "expr"' in html  # прев'ю лише для полів-виразів
 
 
 def test_submit_button_is_wired(client):

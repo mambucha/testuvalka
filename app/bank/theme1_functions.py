@@ -80,6 +80,26 @@ def _domain_sqrt(rng: random.Random) -> Question:
 # --- значення й нулі -----------------------------------------------------
 
 
+@template("domain_sqrt_strict")
+def _domain_sqrt_strict(rng: random.Random) -> Question:
+    """Область визначення дробу з коренем у знаменнику: корінь у знаменнику дає
+    строгу нерівність x - a > 0, тобто x > a."""
+    a = rng.randint(-5, 6)
+    c = rng.choice([1, 2, 3, 4, 5])
+    return Question(
+        key="domain_sqrt_strict",
+        statement=(
+            rf"Задана функція $y = \dfrac{{{c}}}{{\sqrt{{x {(-a):+d}}}}}$." "\n"
+            "Оскільки корінь стоїть у знаменнику, підкореневий вираз має бути "
+            "строго додатним. Область визначення має вигляд $(x_0; +\\infty)$. "
+            "Знайдіть межу $x_0$."
+        ),
+        parts=[Part("x0", "$x_0$ =", a, points=1)],
+        seconds=45,
+        params={"a": a, "c": c},
+    )
+
+
 @template("value_at_points")
 def _value_at_points(rng: random.Random) -> Question:
     """Значення функції у двох точках."""

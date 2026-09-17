@@ -38,14 +38,26 @@
   .statement { font-size:1.15rem; margin:14px 0 6px; }
   #figure { margin:8px 0 4px; text-align:center; }
   #figure:empty { display:none; }
-  .kbd-toggle { margin-top:12px; font-size:.85rem; font-weight:600; padding:6px 12px;
-                border:1px solid var(--line); border-radius:8px; background:#eef1f5;
+  .math-preview { min-height:1.5em; margin-top:6px; color:var(--muted);
+                  font-size:1.1rem; }
+  .math-preview.show::before { content:"= "; color:var(--muted); }
+  .kbd-toggle { margin-top:14px; font-size:.9rem; font-weight:600; padding:8px 14px;
+                border:1px solid var(--line); border-radius:10px; background:#eef1f5;
                 color:var(--ink); cursor:pointer; width:auto; }
-  .kbd-panel { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
-  .kbd-panel button { font-size:1rem; min-width:42px; padding:9px 11px; width:auto;
-                      border:1px solid var(--line); border-radius:8px; background:#fff;
-                      color:var(--ink); cursor:pointer; font-weight:500; }
-  .kbd-panel button:active { background:#eef3ff; }
+  .kbd-toggle:hover { background:#e4e9f0; }
+  .kbd-panel { margin-top:10px; padding:10px; background:#f1f4f8;
+               border:1px solid var(--line); border-radius:12px;
+               display:flex; flex-direction:column; gap:7px; max-width:360px; }
+  .kbd-row { display:flex; gap:7px; }
+  .kbd-panel button { flex:1 1 0; font-size:1.15rem; padding:12px 0; width:auto;
+                      border:1px solid var(--line); border-radius:9px; background:#fff;
+                      color:var(--ink); cursor:pointer; font-weight:500;
+                      box-shadow:0 1px 1px rgba(20,30,50,.05); user-select:none; }
+  .kbd-panel button:hover { background:#f6f9ff; }
+  .kbd-panel button:active { background:#dfe8ff; transform:translateY(1px); }
+  .kbd-panel .k-var { color:var(--accent); font-style:italic; }
+  .kbd-panel .k-op { color:#5a6472; }
+  .kbd-panel .k-back { flex:2 1 0; font-size:.9rem; font-weight:600; color:var(--warn); }
   .integrity { margin:16px 0 4px; padding:10px 12px; font-size:.85rem;
                background:#fff7ed; border:1px solid #f0d7ad; border-radius:8px; color:#7a5312; }
   .integrity-line { margin-top:14px; padding-top:10px; border-top:1px solid var(--line);
@@ -117,18 +129,43 @@
     <div id="statement" class="statement"></div>
     <div id="figure"></div>
     <div id="parts"></div>
-    <button type="button" id="kbd-toggle" class="kbd-toggle" hidden>⌨ Символи</button>
+    <button type="button" id="kbd-toggle" class="kbd-toggle" hidden>⌨ Клавіатура</button>
     <div id="kbd-panel" class="kbd-panel" hidden>
-      <button type="button" data-ins="x">x</button>
-      <button type="button" data-ins="^">x<sup>n</sup></button>
-      <button type="button" data-ins="x^2">x²</button>
-      <button type="button" data-ins="x^3">x³</button>
-      <button type="button" data-ins="(">(</button>
-      <button type="button" data-ins=")">)</button>
-      <button type="button" data-ins="/">/</button>
-      <button type="button" data-ins="-">−</button>
-      <button type="button" data-ins="sqrt()" data-caret="-1">√</button>
-      <button type="button" data-act="back">⌫</button>
+      <div class="kbd-row">
+        <button type="button" data-ins="7">7</button>
+        <button type="button" data-ins="8">8</button>
+        <button type="button" data-ins="9">9</button>
+        <button type="button" data-ins="x" class="k-var">x</button>
+        <button type="button" data-ins="^" class="k-var">x<sup>n</sup></button>
+      </div>
+      <div class="kbd-row">
+        <button type="button" data-ins="4">4</button>
+        <button type="button" data-ins="5">5</button>
+        <button type="button" data-ins="6">6</button>
+        <button type="button" data-ins="x^2" class="k-var">x²</button>
+        <button type="button" data-ins="x^3" class="k-var">x³</button>
+      </div>
+      <div class="kbd-row">
+        <button type="button" data-ins="1">1</button>
+        <button type="button" data-ins="2">2</button>
+        <button type="button" data-ins="3">3</button>
+        <button type="button" data-ins="(" class="k-op">(</button>
+        <button type="button" data-ins=")" class="k-op">)</button>
+      </div>
+      <div class="kbd-row">
+        <button type="button" data-ins="0">0</button>
+        <button type="button" data-ins="," class="k-op">,</button>
+        <button type="button" data-ins="/" class="k-op">/</button>
+        <button type="button" data-ins="sqrt()" data-caret="-1" class="k-op">√</button>
+        <button type="button" data-act="back" class="k-back">⌫</button>
+      </div>
+      <div class="kbd-row">
+        <button type="button" data-ins="+" class="k-op">+</button>
+        <button type="button" data-ins="-" class="k-op">−</button>
+        <button type="button" data-ins="*" class="k-op">·</button>
+        <button type="button" data-ins="." class="k-op">.</button>
+        <button type="button" data-act="clear" class="k-back">Стерти все</button>
+      </div>
     </div>
     <button id="btn-submit">Відповісти</button>
     <div id="quiz-err" class="err"></div>
@@ -294,7 +331,17 @@ function renderQuestion(data){
     inp.addEventListener("paste", () => sendEvent("paste", {part:p.key}));
     inp.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
     inp.addEventListener("focus", () => { state.lastInput = inp; });
-    wrap.appendChild(lbl); wrap.appendChild(inp); box.appendChild(wrap);
+    wrap.appendChild(lbl); wrap.appendChild(inp);
+    // Живий математичний прев'ю для полів-виразів: студент бачить, як його
+    // введення виглядає формулою (x^2 -> x²), а не сирим текстом.
+    if (p.kind === "expr"){
+      const pv = document.createElement("div"); pv.className = "math-preview";
+      const upd = () => renderExprPreview(pv, inp.value);
+      inp.addEventListener("input", upd);
+      wrap.appendChild(pv);
+      upd();
+    }
+    box.appendChild(wrap);
     if (i === 0) setTimeout(() => inp.focus(), 30);
   });
   // Клавіатура символів: показуємо кнопку виклику, панель ховаємо на новому питанні.
@@ -310,6 +357,20 @@ function onFirstInput(){
   if (state.firstInput) return;
   state.firstInput = true;
   sendEvent("first_input", {ms: Date.now() - state.shownAt});
+}
+
+// Рендер того, що студент вводить у поле-вираз, як формули (живий прев'ю).
+function renderExprPreview(el, val){
+  val = (val || "").trim();
+  if (!val){ el.classList.remove("show"); el.innerHTML = ""; return; }
+  el.classList.add("show");
+  // Наш синтаксис вводу -> LaTeX: ** -> ^, sqrt( -> \sqrt(, * -> ·
+  let tex = val.replace(/\*\*/g, "^").replace(/\bsqrt\s*/g, "\\sqrt ").replace(/\*/g, "\\cdot ");
+  if (window.katex){
+    try { katex.render(tex, el, {throwOnError:false, strict:false}); return; }
+    catch(e){}
+  }
+  el.textContent = val;
 }
 
 function collect(){
@@ -353,6 +414,15 @@ function kbdBackspace(){
     inp.value = inp.value.slice(0, s) + inp.value.slice(e);
     inp.setSelectionRange(s, s);
   }
+  inp.dispatchEvent(new Event("input"));
+  state.lastInput = inp;
+}
+function kbdClear(){
+  const inp = kbdTarget();
+  if (!inp){ return; }
+  inp.focus();
+  inp.value = "";
+  inp.setSelectionRange(0, 0);
   inp.dispatchEvent(new Event("input"));
   state.lastInput = inp;
 }
@@ -458,6 +528,7 @@ function init(){
     const btn = e.target.closest("button");
     if (!btn) return;
     if (btn.dataset.act === "back"){ kbdBackspace(); return; }
+    if (btn.dataset.act === "clear"){ kbdClear(); return; }
     if (btn.dataset.ins != null){
       kbdInsert(btn.dataset.ins, parseInt(btn.dataset.caret || "0", 10));
     }

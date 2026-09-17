@@ -6,11 +6,10 @@ from app.config import SECRET
 THEME1_KEYS = [
     "domain_fraction",
     "domain_sqrt",
-    "value_at_points",
+    "domain_sqrt_strict",
     "value_solve",
     "function_zeros",
     "zeros_linear",
-    "range_endpoints",
     "parity_compute",
     "parity_values",
     "symmetry_point",
@@ -21,6 +20,12 @@ THEME1_KEYS = [
 FIGURE_KEYS = {"graph_vertex", "graph_zeros"}
 # parity_compute дає вираз (не число), тож у перевірці цілих його пропускаємо.
 EXPR_KEYS = {"parity_compute"}
+
+
+def test_theme1_has_12_distinct_types():
+    """Банк рівно з 12 різних типів (щоб у тесті не було повторів типу)."""
+    assert len(THEME1_KEYS) == 12
+    assert len(set(THEME1_KEYS)) == 12
 
 
 def test_all_theme1_templates_grade_full_on_correct_answers():
