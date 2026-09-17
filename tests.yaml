@@ -92,3 +92,26 @@
     - graph_zeros            # РИСУНОК: нулі функції з графіка
   max_attempts: 2
   max_reissues: 2
+
+# Лекція 3: криві другого порядку (коло, еліпс, гіпербола, парабола).
+# 12 різних типів, беруться всі 12 (без повторів типу). Два з рисунками
+# (коло й еліпс на координатній площині).
+- key: lecture3
+  title: "Лекція 3. Криві другого порядку"
+  question_count: 12
+  points_per_question: 1
+  bank:
+    - circle_from_canonical       # коло: центр і радіус із канонічного рівняння
+    - circle_from_general         # коло: повні квадрати -> центр і радіус
+    - circle_radius_through_point # коло: радіус через точку (відстань)
+    - ellipse_semi_axes_focus     # еліпс: півосі a, b і фокус c
+    - ellipse_eccentricity        # еліпс: ексцентриситет c/a
+    - distance_foci               # відстань між фокусами 2c
+    - hyperbola_semi_axes_focus   # гіпербола: a, b, c
+    - hyperbola_asymptote         # гіпербола: нахил асимптоти b/a
+    - parabola_param_focus        # парабола: p, фокус, директриса
+    - curve_center_general        # загальне рівняння -> центр кривої
+    - circle_from_graph           # РИСУНОК: коло -> центр і радіус
+    - ellipse_from_graph          # РИСУНОК: еліпс -> півосі
+  max_attempts: 2
+  max_reissues: 2

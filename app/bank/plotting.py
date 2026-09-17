@@ -22,16 +22,21 @@ def _py(y: float) -> float:
     return round(_ORIGIN - y * _UNIT, 1)
 
 
-def coordinate_plane(lines=None, points=None, parabolas=None, labeled_ticks=True) -> str:
+def coordinate_plane(lines=None, points=None, parabolas=None, circles=None,
+                     ellipses=None, labeled_ticks=True) -> str:
     """Координатна площина з осями, сіткою та об'єктами.
 
     lines:     список прямих як (k, b) — рисуємо y = k*x + b через усе полотно.
     parabolas: список парабол як (a, h, k) — рисуємо y = a*(x-h)^2 + k.
+    circles:   список кіл як (cx, cy, r).
+    ellipses:  список еліпсів як (cx, cy, ra, rb) — півосі вздовж Ox і Oy.
     points:    список (x, y[, підпис]) — позначаємо кружечками.
     Повертає рядок <svg>…</svg>, придатний для inline-вставки.
     """
     lines = lines or []
     parabolas = parabolas or []
+    circles = circles or []
+    ellipses = ellipses or []
     points = points or []
     el: list[str] = []
 
@@ -78,6 +83,20 @@ def coordinate_plane(lines=None, points=None, parabolas=None, labeled_ticks=True
                 f'<polyline points="{" ".join(pts)}" fill="none" '
                 'stroke="#2f6df6" stroke-width="2.4"/>'
             )
+
+    # --- кола ---
+    for cx, cy, r in circles:
+        el.append(
+            f'<circle cx="{_px(cx)}" cy="{_py(cy)}" r="{round(r * _UNIT, 1)}" '
+            'fill="none" stroke="#2f6df6" stroke-width="2.4"/>'
+        )
+
+    # --- еліпси (півосі ra вздовж Ox, rb вздовж Oy) ---
+    for cx, cy, ra, rb in ellipses:
+        el.append(
+            f'<ellipse cx="{_px(cx)}" cy="{_py(cy)}" rx="{round(ra * _UNIT, 1)}" '
+            f'ry="{round(rb * _UNIT, 1)}" fill="none" stroke="#2f6df6" stroke-width="2.4"/>'
+        )
 
     # --- прямі (y = k*x + b); малюємо від краю до краю, svg обріже рамкою ---
     for k, b in lines:
