@@ -8,6 +8,15 @@ def test_index_is_served(client):
     assert "Вхід у тест" in r.text
 
 
+def test_pages_are_not_cached(client):
+    """Сторінки віддаються з no-cache, щоб браузер не показував стару версію
+    після оновлення застосунку."""
+    for path in ("/", "/teacher.html"):
+        r = client.get(path)
+        assert r.status_code == 200
+        assert "no-cache" in r.headers.get("cache-control", "")
+
+
 def test_api_routes_take_priority_over_static(client):
     # /api/* не має перехоплюватись монтуванням статики на "/".
     r = client.get("/api/attempt/999999/current")

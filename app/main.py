@@ -191,6 +191,17 @@ def teacher_attempt_detail(
     return teacher.attempt_detail(db, attempt_id)
 
 
+class _NoCacheStatic(StaticFiles):
+    """Статика без кешування сторінок: браузер щоразу перевіряє свіжість (з
+    ETag це дешево, зазвичай 304). Інакше після оновлення застосунку студенти
+    бачать стару версію сторінки з кешу, поки не зроблять hard refresh."""
+
+    async def get_response(self, path, scope):
+        resp = await super().get_response(path, scope)
+        resp.headers["Cache-Control"] = "no-cache, must-revalidate"
+        return resp
+
+
 # Статичний фронтенд (одна сторінка). Монтуємо ОСТАННІМ, щоб /api/* мали
 # пріоритет; html=True віддає index.html на "/".
-app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
+app.mount("/", _NoCacheStatic(directory=WEB_DIR, html=True), name="web")
