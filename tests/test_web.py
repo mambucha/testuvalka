@@ -32,6 +32,8 @@ def test_integrity_markers_present(client):
     assert 'class="integrity-line"' in html  # рядок під питанням
     assert "ШІ" in html  # згадка про ШІ-помічників
     assert "статуту коледжу" in html or "статутом коледжу" in html
+    # оголошене правило про перевидання при виході/вставці
+    assert "заміниться на нове з іншими числами" in html
 
 
 def test_agree_checkbox_gates_start(client):
