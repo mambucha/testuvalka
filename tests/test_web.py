@@ -46,6 +46,10 @@ def test_symbol_keyboard_present(client):
     assert 'data-act="clear"' in html  # кнопка «стерти все»
     assert "function kbdInsert" in html
     assert "function kbdClear" in html
+    # опційна: перемикач зі станом, що запам'ятовується
+    assert "function kbdSetOpen" in html
+    assert 'id="kbd-arrow"' in html
+    assert "testuvalka:kbd" in html  # стан зберігається
 
 
 def test_live_math_preview_present(client):

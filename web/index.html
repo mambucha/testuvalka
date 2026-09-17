@@ -129,7 +129,7 @@
     <div id="statement" class="statement"></div>
     <div id="figure"></div>
     <div id="parts"></div>
-    <button type="button" id="kbd-toggle" class="kbd-toggle" hidden>⌨ Клавіатура</button>
+    <button type="button" id="kbd-toggle" class="kbd-toggle" hidden aria-expanded="false">⌨ Клавіатура <span id="kbd-arrow">▾</span></button>
     <div id="kbd-panel" class="kbd-panel" hidden>
       <div class="kbd-row">
         <button type="button" data-ins="7">7</button>
@@ -344,10 +344,11 @@ function renderQuestion(data){
     box.appendChild(wrap);
     if (i === 0) setTimeout(() => inp.focus(), 30);
   });
-  // Клавіатура символів: показуємо кнопку виклику, панель ховаємо на новому питанні.
+  // Клавіатура символів: показуємо кнопку виклику; стан панелі беремо зі
+  // збереженого вибору студента (не скидаємо на кожному питанні).
   state.lastInput = null;
   $("kbd-toggle").hidden = false;
-  $("kbd-panel").hidden = true;
+  kbdSetOpen(kbdSavedOpen());
   $("quiz-err").textContent = "";
   $("btn-submit").disabled = false;
   startTimer(data.seconds_left);
@@ -383,7 +384,16 @@ function collect(){
 
 function autoSubmit(){ if (state.active && !state.submitting) submit(); }
 
-// --- екранна клавіатура символів (опційна) ---
+// --- екранна клавіатура символів (опційна, стан запам'ятовується) ---
+function kbdSavedOpen(){
+  try { return localStorage.getItem("testuvalka:kbd") === "1"; } catch(e){ return false; }
+}
+function kbdSetOpen(open){
+  $("kbd-panel").hidden = !open;
+  $("kbd-arrow").textContent = open ? "▴" : "▾";
+  $("kbd-toggle").setAttribute("aria-expanded", open ? "true" : "false");
+  try { localStorage.setItem("testuvalka:kbd", open ? "1" : "0"); } catch(e){}
+}
 function kbdTarget(){
   // Останнє активне поле; якщо жодного, беремо перше поле питання.
   if (state.lastInput && document.body.contains(state.lastInput)) return state.lastInput;
@@ -515,9 +525,9 @@ function init(){
   // Кнопка старту активна лише коли позначено дотримання доброчесності.
   $("agree").addEventListener("change", () => { $("btn-start").disabled = !$("agree").checked; });
 
-  // Екранна клавіатура символів.
+  // Екранна клавіатура символів: кнопка перемикає й запам'ятовує стан.
   $("kbd-toggle").addEventListener("click", () => {
-    $("kbd-panel").hidden = !$("kbd-panel").hidden;
+    kbdSetOpen($("kbd-panel").hidden);  // якщо схована — відкриваємо, і навпаки
   });
   const panel = $("kbd-panel");
   // mousedown не дає полю втратити фокус і виділення до вставки.
