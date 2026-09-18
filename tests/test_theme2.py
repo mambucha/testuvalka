@@ -72,3 +72,30 @@ def test_odd_root_negative_answer_is_negative():
     for attempt in range(10):
         q = engine.build("odd_root_negative", SECRET, f"o|{attempt}", "t", 1, 0)
         assert q.parts[0].answer < 0
+
+
+def test_computational_answers_match_the_math():
+    """ЗМІСТОВНА перевірка (не тавтологія еталон=еталон): відповідь справді
+    відповідає умові за самою математикою задачі."""
+    import sympy as sp
+
+    for i in range(50):
+        # добуток коренів: відповідь² має дорівнювати a*b
+        q = engine.build("root_product", SECRET, f"p|{i}", "t", 1, 0)
+        a, b, ans = q.params["a"], q.params["b"], q.parts[0].answer
+        assert ans * ans == a * b, ("product", a, b, ans)
+
+        # частка коренів: відповідь² * b == a
+        q = engine.build("root_quotient", SECRET, f"q|{i}", "t", 1, 0)
+        a, b, ans = q.params["a"], q.params["b"], q.parts[0].answer
+        assert ans * ans * b == a, ("quotient", a, b, ans)
+
+        # корінь n-го степеня: відповідь^n == підкореневе
+        q = engine.build("root_value", SECRET, f"r|{i}", "t", 1, 0)
+        n, a, ans = q.params["n"], q.params["a"], q.parts[0].answer
+        assert ans**n == a, ("root_value", n, a, ans)
+
+        # винесення множника: (k√m)² == a (підкореневе)
+        q = engine.build("root_simplify", SECRET, f"s|{i}", "t", 1, 0)
+        expr = q.parts[0].answer
+        assert sp.simplify(expr**2 - (q.params["k"] ** 2 * q.params["m"])) == 0

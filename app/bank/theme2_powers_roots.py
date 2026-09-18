@@ -164,19 +164,18 @@ def _negative_power_value(rng: random.Random) -> Question:
 
 @template("root_product")
 def _root_product(rng: random.Random) -> Question:
-    """Добуток коренів: √a·√b = √(ab) (результат цілий)."""
-    r = rng.randint(3, 8)
-    # a·b = r²; беремо a=r*t, b=r/t не завжди цілі — простіше через дільники r²
-    sq = r * r
-    divs = [d for d in range(2, sq) if sq % d == 0 and d != r]
-    a = rng.choice(divs) if divs else 2
-    b = sq // a
+    """Добуток коренів: √(k²m)·√m = k·m (результат цілий).
+    Будуємо a=k²·m, b=m, тоді √a·√b = √(k²m²) = k·m гарантовано ціле."""
+    k = rng.randint(2, 4)
+    m = rng.randint(2, 5)
+    a, b = k * k * m, m
+    ans = k * m  # √(k²m)·√m = km
     return Question(
         key="root_product",
         statement=(
             "Обчисліть добуток коренів:\n$$\\sqrt{" + str(a) + r"} \cdot \sqrt{" + str(b) + "}$$"
         ),
-        parts=[Part("v", "= ", r, points=1)],
+        parts=[Part("v", "= ", ans, points=1)],
         seconds=50,
         params={"a": a, "b": b},
     )

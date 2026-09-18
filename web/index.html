@@ -355,15 +355,14 @@ function renderQuestion(data){
     inp.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
     inp.addEventListener("focus", () => { state.lastInput = inp; });
     wrap.appendChild(lbl); wrap.appendChild(inp);
-    // Живий математичний прев'ю для полів-виразів: студент бачить, як його
-    // введення виглядає формулою (x^2 -> x²), а не сирим текстом.
-    if (p.kind === "expr"){
-      const pv = document.createElement("div"); pv.className = "math-preview";
-      const upd = () => renderExprPreview(pv, inp.value);
-      inp.addEventListener("input", upd);
-      wrap.appendChild(pv);
-      upd();
-    }
+    // Живий математичний прев'ю для БУДЬ-ЯКОГО поля: студент бачить, як його
+    // введення виглядає формулою (x^2 -> x², sqrt(8) -> √8). Для простого числа
+    // прев'ю ховається (renderExprPreview сам вирішує).
+    const pv = document.createElement("div"); pv.className = "math-preview";
+    const upd = () => renderExprPreview(pv, inp.value);
+    inp.addEventListener("input", upd);
+    wrap.appendChild(pv);
+    upd();
     box.appendChild(wrap);
     if (i === 0) setTimeout(() => inp.focus(), 30);
   });
@@ -386,7 +385,10 @@ function onFirstInput(){
 // Рендер того, що студент вводить у поле-вираз, як формули (живий прев'ю).
 function renderExprPreview(el, val){
   val = (val || "").trim();
-  if (!val){ el.classList.remove("show"); el.innerHTML = ""; return; }
+  // Показуємо прев'ю лише коли ввід «нетривіальний» (корінь, степінь, дріб,
+  // дужки). Для простого числа (напр. 13 чи -2,5) прев'ю зайве — ховаємо.
+  const nontrivial = /sqrt|\^|\/|[()]/.test(val);
+  if (!val || !nontrivial){ el.classList.remove("show"); el.innerHTML = ""; return; }
   el.classList.add("show");
   // Наш синтаксис вводу -> LaTeX: ** -> ^, sqrt( -> \sqrt(, * -> ·
   let tex = val

@@ -68,7 +68,7 @@ def test_live_math_preview_present(client):
     html = client.get("/").text
     assert "function renderExprPreview" in html
     assert "math-preview" in html  # клас прев'ю (створюється у JS)
-    assert 'p.kind === "expr"' in html  # прев'ю лише для полів-виразів
+    assert "nontrivial" in html  # прев'ю показується лише для нетривіального вводу
 
 
 def test_submit_button_is_wired(client):
