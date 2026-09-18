@@ -16,3 +16,4 @@ from app.bank import lecture1_linear_algebra  # noqa: F401
 from app.bank import lecture2_lines  # noqa: F401
 from app.bank import theme1_functions  # noqa: F401
 from app.bank import lecture3_conics  # noqa: F401
+from app.bank import theme2_powers_roots  # noqa: F401

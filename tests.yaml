@@ -115,3 +115,26 @@
     - ellipse_from_graph          # РИСУНОК: еліпс -> півосі
   max_attempts: 2
   max_reissues: 2
+
+# Тема (шкільна математика, заняття 5): степенева функція та корінь n-го степеня.
+# 12 різних типів (без перетворень графіків — цього ще не вивчали). Винесення
+# множника дає вираз, тож задіяні клавіатура з коренем і живий прев'ю.
+- key: theme2
+  title: "Степенева функція. Корінь n-го степеня та його властивості"
+  question_count: 12
+  points_per_question: 1
+  bank:
+    - root_value              # корінь n-го степеня з точного степеня
+    - odd_root_negative       # непарний корінь з від'ємного числа
+    - root_expression         # обчислення виразу з кількох коренів
+    - even_root_modulus       # властивість з модулем: 2k√(a^2k) = |a|
+    - power_value             # значення y = x^n у точці
+    - negative_power_value    # значення y = x^(-n) = 1/x^n
+    - root_product            # добуток коренів √a·√b
+    - root_quotient           # частка коренів √a/√b
+    - root_simplify           # винесення множника k√m (вираз, клавіатура)
+    - power_of_root           # степінь кореня (√a)^k
+    - compare_roots_lcm       # спільний показник для порівняння (НСК)
+    - root_function_domain    # область визначення y = n√(ax+b), n парне
+  max_attempts: 2
+  max_reissues: 2

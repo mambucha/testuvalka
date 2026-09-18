@@ -389,7 +389,11 @@ function renderExprPreview(el, val){
   if (!val){ el.classList.remove("show"); el.innerHTML = ""; return; }
   el.classList.add("show");
   // Наш синтаксис вводу -> LaTeX: ** -> ^, sqrt( -> \sqrt(, * -> ·
-  let tex = val.replace(/\*\*/g, "^").replace(/\bsqrt\s*/g, "\\sqrt ").replace(/\*/g, "\\cdot ");
+  let tex = val
+    .replace(/\*\*/g, "^")
+    .replace(/sqrt\s*\(([^()]*)\)/g, "\\sqrt{$1}")  // sqrt(2) -> √2 (навіть без зірочки)
+    .replace(/\bsqrt\s*/g, "\\sqrt ")               // sqrt без дужок
+    .replace(/\*/g, "\\cdot ");
   if (window.katex){
     try { katex.render(tex, el, {throwOnError:false, strict:false}); return; }
     catch(e){}
