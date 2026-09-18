@@ -53,16 +53,20 @@ def test_theme2_math():
              + sp.real_root(p["a3"], 3))
         assert sp.simplify(v - a["v"]) == 0
     # степенева функція та її властивості
-    for q, p, a in _each("power_parity_values"):
-        assert a["fa"] == p["a"] ** p["n"] and a["fna"] == (-p["a"]) ** p["n"]
-    for q, p, a in _each("power_compare"):
-        assert a["v1"] == p["b1"] ** p["n"] and a["v2"] == p["b2"] ** p["n"]
+    x, y = sp.Symbol("x"), sp.Symbol("y")
+    for q, p, a in _each("odd_root_negative"):
+        assert a["v"] ** p["n"] == p["a"] and a["v"] < 0
+    for q, p, a in _each("power_parity_symbolic"):
+        assert sp.simplify(a["fneg"] - sp.expand((-x) ** p["n"])) == 0
+    for q, p, a in _each("power_parity_apply"):
+        expected = p["a"] ** p["n"] if p["n"] % 2 == 0 else -(p["a"] ** p["n"])
+        assert a["v"] == expected
     for q, p, a in _each("power_solve_odd"):
         assert a["x"] ** p["n"] == p["c"]
     for q, p, a in _each("power_solve_even"):
         assert a["lo"] ** p["n"] == p["c"] and a["hi"] ** p["n"] == p["c"] and a["lo"] < a["hi"]
-    for q, p, a in _each("power_graph_value"):
-        assert a["x"] == p["t"] and a["y"] == p["t"] ** 2
+    for q, p, a in _each("root_simplify_var"):
+        assert sp.simplify(a["v"] ** p["n"] - x ** (p["n"] * p["kx"]) * y ** (p["n"] * p["ky"])) == 0
 
 
 # --- lecture1: визначники та СЛАР ----------------------------------------

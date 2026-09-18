@@ -242,6 +242,68 @@ def _power_solve_even(rng: random.Random) -> Question:
     )
 
 
+@template("power_parity_symbolic")
+def _power_parity_symbolic(rng: random.Random) -> Question:
+    """Розуміння парності символьно: знайти ВИРАЗ f(-x) для y = xⁿ.
+    Парна (n парне) -> xⁿ; непарна -> -xⁿ. Відповідь-вираз (клавіатура+прев'ю)."""
+    n = rng.choice([2, 3, 4, 5, 6])
+    fneg = sp.expand((-_x) ** n)
+    return Question(
+        key="power_parity_symbolic",
+        statement=(
+            rf"Дано степеневу функцію $y = x^{{{n}}}$. Щоб дослідити її на "
+            r"парність, знайдіть і спростіть вираз $f(-x)$."
+        ),
+        parts=[Part("fneg", "$f(-x)$ =", fneg, kind="expr", points=1)],
+        seconds=55,
+        params={"n": n},
+    )
+
+
+@template("power_parity_apply")
+def _power_parity_apply(rng: random.Random) -> Question:
+    """Застосування властивості парності БЕЗ повторного обчислення: відомо
+    значення в точці, знайти в протилежній, спираючись на парність/непарність."""
+    n = rng.choice([2, 3, 4, 5, 6])
+    a = rng.choice([2, 3])
+    v = a**n
+    even = (n % 2 == 0)
+    fneg = v if even else -v
+    kind_word = "парна" if even else "непарна"
+    return Question(
+        key="power_parity_apply",
+        statement=(
+            rf"Функція $y = x^{{{n}}}$ є {kind_word}. Відомо, що $f({a}) = {v}$."
+            "\nКористуючись цією властивістю (не обчислюючи степінь заново), "
+            rf"знайдіть $f(-{a})$."
+        ),
+        parts=[Part("v", f"$f(-{a})$ =", fneg, points=1)],
+        seconds=50,
+        params={"n": n, "a": a},
+    )
+
+
+@template("root_simplify_var")
+def _root_simplify_var(rng: random.Random) -> Question:
+    """Спрощення кореня з буквами (застосування властивості ⁿ√(xᵏ)=x^(k/n)).
+    Вважаємо змінні додатними (щоб без модуля), як у задачах заняття."""
+    n = rng.choice([2, 3, 4])
+    kx = rng.randint(2, 4)  # показник x у відповіді
+    ky = rng.randint(2, 4)  # показник y у відповіді
+    ex, ey = n * kx, n * ky  # під коренем x^(n·kx) y^(n·ky)
+    ans = _x**kx * sp.Symbol("y") ** ky
+    inner = rf"x^{{{ex}}} y^{{{ey}}}"
+    return Question(
+        key="root_simplify_var",
+        statement=(
+            "Спростіть вираз (вважайте $x>0$, $y>0$):\n$$" + _root_tex(n, inner) + "$$"
+        ),
+        parts=[Part("v", "= ", ans, kind="expr", points=1)],
+        seconds=75,
+        params={"n": n, "kx": kx, "ky": ky},
+    )
+
+
 @template("power_graph_value")
 def _power_graph_value(rng: random.Random) -> Question:
     """РИСУНОК: графік степеневої y=x² (парабола); зчитати значення в точці."""

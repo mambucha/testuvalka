@@ -4,23 +4,23 @@ import engine
 from app.config import SECRET
 
 THEME2_KEYS = [
-    # степенева функція та її властивості (акцент теми)
+    # степенева функція та її властивості
     "power_value",
     "negative_power_value",
-    "power_parity_values",
-    "power_compare",
+    "power_parity_symbolic",
+    "power_parity_apply",
     "power_solve_odd",
     "power_solve_even",
-    "power_graph_value",
-    # корінь n-го степеня (основне)
+    # корінь n-го степеня та властивості
     "root_value",
     "odd_root_negative",
+    "root_expression",
     "even_root_modulus",
     "root_simplify",
-    "root_product",
+    "root_simplify_var",
 ]
-EXPR_KEYS = {"root_simplify"}
-FIGURE_KEYS = {"power_graph_value"}
+EXPR_KEYS = {"root_simplify", "root_simplify_var", "power_parity_symbolic"}
+FIGURE_KEYS = set()  # у цій темі рисунків немає (графіки = перетворення, не вивчали)
 
 
 def test_has_12_distinct_types():
@@ -44,20 +44,29 @@ def test_statements_use_katex_no_literal_newline():
         assert "\\n" not in q.statement, key
 
 
-def test_only_graph_value_has_figure():
-    """Графік лише в power_graph_value (базовий y=x², БЕЗ перетворень-зсувів)."""
+def test_no_figures_in_theme():
+    """Рисунків немає (графіки степеневої = перетворення, які ще не вивчали)."""
     for key in THEME2_KEYS:
         q = engine.build(key, SECRET, "s|1", "t", 1, 0)
-        if key in FIGURE_KEYS:
-            assert q.svg and "<svg" in q.svg, key
-        else:
-            assert q.svg is None, key
+        assert q.svg is None, key
 
 
-def test_power_balance():
-    """Акцент теми — на степеневій функції: щонайменше 7 таких питань."""
-    power_keys = [k for k in THEME2_KEYS if k.startswith("power_") or k == "negative_power_value"]
-    assert len(power_keys) >= 7
+def test_balance_power_vs_roots():
+    """Баланс: рівно 6 питань про степеневу функцію і 6 про корені."""
+    power = [k for k in THEME2_KEYS if k.startswith("power_") or k == "negative_power_value"]
+    roots = [k for k in THEME2_KEYS if "root" in k]
+    assert len(power) == 6 and len(roots) == 6
+
+
+def test_understanding_over_calculation():
+    """Не «калькулятор»: щонайменше половина питань — не одноактові обчислення,
+    а вирази/властивості/багатокрокові."""
+    conceptual = {
+        "power_parity_symbolic", "power_parity_apply", "power_solve_odd",
+        "power_solve_even", "root_expression", "even_root_modulus",
+        "root_simplify", "root_simplify_var",
+    }
+    assert len(conceptual & set(THEME2_KEYS)) >= 8
 
 
 def test_root_simplify_is_expr_and_accepts_forms():
