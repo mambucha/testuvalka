@@ -4,20 +4,23 @@ import engine
 from app.config import SECRET
 
 THEME2_KEYS = [
-    "root_value",
-    "odd_root_negative",
-    "root_expression",
-    "even_root_modulus",
+    # степенева функція та її властивості (акцент теми)
     "power_value",
     "negative_power_value",
-    "root_product",
-    "root_quotient",
+    "power_parity_values",
+    "power_compare",
+    "power_solve_odd",
+    "power_solve_even",
+    "power_graph_value",
+    # корінь n-го степеня (основне)
+    "root_value",
+    "odd_root_negative",
+    "even_root_modulus",
     "root_simplify",
-    "power_of_root",
-    "compare_roots_lcm",
-    "root_function_domain",
+    "root_product",
 ]
 EXPR_KEYS = {"root_simplify"}
+FIGURE_KEYS = {"power_graph_value"}
 
 
 def test_has_12_distinct_types():
@@ -41,11 +44,20 @@ def test_statements_use_katex_no_literal_newline():
         assert "\\n" not in q.statement, key
 
 
-def test_no_graphics_in_this_theme():
-    """У темі немає рисунків (графічні перетворення не вивчали)."""
+def test_only_graph_value_has_figure():
+    """Графік лише в power_graph_value (базовий y=x², БЕЗ перетворень-зсувів)."""
     for key in THEME2_KEYS:
         q = engine.build(key, SECRET, "s|1", "t", 1, 0)
-        assert q.svg is None, key
+        if key in FIGURE_KEYS:
+            assert q.svg and "<svg" in q.svg, key
+        else:
+            assert q.svg is None, key
+
+
+def test_power_balance():
+    """Акцент теми — на степеневій функції: щонайменше 7 таких питань."""
+    power_keys = [k for k in THEME2_KEYS if k.startswith("power_") or k == "negative_power_value"]
+    assert len(power_keys) >= 7
 
 
 def test_root_simplify_is_expr_and_accepts_forms():

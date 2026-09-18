@@ -52,6 +52,17 @@ def test_theme2_math():
         v = (sp.real_root(p["a1"], p["n1"]) - p["k"] * sp.real_root(p["a2"], p["n2"])
              + sp.real_root(p["a3"], 3))
         assert sp.simplify(v - a["v"]) == 0
+    # степенева функція та її властивості
+    for q, p, a in _each("power_parity_values"):
+        assert a["fa"] == p["a"] ** p["n"] and a["fna"] == (-p["a"]) ** p["n"]
+    for q, p, a in _each("power_compare"):
+        assert a["v1"] == p["b1"] ** p["n"] and a["v2"] == p["b2"] ** p["n"]
+    for q, p, a in _each("power_solve_odd"):
+        assert a["x"] ** p["n"] == p["c"]
+    for q, p, a in _each("power_solve_even"):
+        assert a["lo"] ** p["n"] == p["c"] and a["hi"] ** p["n"] == p["c"] and a["lo"] < a["hi"]
+    for q, p, a in _each("power_graph_value"):
+        assert a["x"] == p["t"] and a["y"] == p["t"] ** 2
 
 
 # --- lecture1: визначники та СЛАР ----------------------------------------

@@ -123,18 +123,21 @@
   title: "Степенева функція. Корінь n-го степеня та його властивості"
   question_count: 12
   points_per_question: 1
+  # Акцент на степеневій функції та її властивостях (7 питань), корені — основне (5).
   bank:
-    - root_value              # корінь n-го степеня з точного степеня
-    - odd_root_negative       # непарний корінь з від'ємного числа
-    - root_expression         # обчислення виразу з кількох коренів
-    - even_root_modulus       # властивість з модулем: 2k√(a^2k) = |a|
+    # --- степенева функція та її властивості ---
     - power_value             # значення y = x^n у точці
     - negative_power_value    # значення y = x^(-n) = 1/x^n
-    - root_product            # добуток коренів √a·√b
-    - root_quotient           # частка коренів √a/√b
+    - power_parity_values     # f(a), f(-a) -> парність степеневої
+    - power_compare           # значення в двох точках -> монотонність
+    - power_solve_odd         # x^n = c, непарний n (один корінь)
+    - power_solve_even        # x^(2k) = c, парний степінь (два корені ±)
+    - power_graph_value       # РИСУНОК: графік y=x², зчитати значення
+    # --- корінь n-го степеня (основне) ---
+    - root_value              # корінь n-го степеня з точного степеня
+    - odd_root_negative       # непарний корінь з від'ємного числа
+    - even_root_modulus       # властивість з модулем: 2k√(a^2k) = |a|
     - root_simplify           # винесення множника k√m (вираз, клавіатура)
-    - power_of_root           # степінь кореня (√a)^k
-    - compare_roots_lcm       # спільний показник для порівняння (НСК)
-    - root_function_domain    # область визначення y = n√(ax+b), n парне
+    - root_product            # добуток коренів √a·√b
   max_attempts: 2
   max_reissues: 2

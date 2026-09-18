@@ -20,6 +20,8 @@ import sympy as sp
 
 from engine import Part, Question, template
 
+from app.bank.plotting import coordinate_plane
+
 _x = sp.Symbol("x")
 
 # Числа, що НЕ є повними квадратами (для «залишку» під коренем при винесенні).
@@ -156,6 +158,110 @@ def _negative_power_value(rng: random.Random) -> Question:
         parts=[Part("v", f"$y({a})$ =", val, points=1)],
         seconds=50,
         params={"n": n, "a": a},
+    )
+
+
+@template("power_parity_values")
+def _power_parity_values(rng: random.Random) -> Question:
+    """Парність степеневої: обчислити f(a) та f(-a) для y=xⁿ.
+    Порівняння значень показує парність (парна n -> рівні, непарна -> протилежні)."""
+    n = rng.choice([2, 3, 4, 5])
+    a = rng.choice([2, 3]) if n <= 3 else 2
+    return Question(
+        key="power_parity_values",
+        statement=(
+            rf"Для степеневої функції $y = x^{{{n}}}$ обчисліть $f({a})$ та "
+            rf"$f(-{a})$ (порівняння цих значень показує, чи функція парна)."
+        ),
+        parts=[
+            Part("fa", rf"$f({a})$ =", a**n, points=1),
+            Part("fna", rf"$f(-{a})$ =", (-a) ** n, points=1),
+        ],
+        seconds=55,
+        params={"n": n, "a": a},
+    )
+
+
+@template("power_compare")
+def _power_compare(rng: random.Random) -> Question:
+    """Монотонність: порівняти значення xⁿ у двох додатних точках (обчислити обидва)."""
+    n = rng.choice([2, 3, 4])
+    b1, b2 = 2, 3
+    return Question(
+        key="power_compare",
+        statement=(
+            rf"Функція $y = x^{{{n}}}$ зростає на $[0; +\infty)$. Обчисліть її "
+            rf"значення в точках $x={b1}$ та $x={b2}$."
+        ),
+        parts=[
+            Part("v1", rf"$f({b1})$ =", b1**n, points=1),
+            Part("v2", rf"$f({b2})$ =", b2**n, points=1),
+        ],
+        seconds=50,
+        params={"n": n, "b1": b1, "b2": b2},
+    )
+
+
+@template("power_solve_odd")
+def _power_solve_odd(rng: random.Random) -> Question:
+    """Обернена дія: розв'язати xⁿ = c для НЕПАРНОГО n (єдиний корінь, можливо <0)."""
+    n = rng.choice([3, 5])
+    b = rng.randint(2, 4) if n == 3 else rng.randint(2, 3)
+    b *= rng.choice([1, -1])
+    c = b**n
+    return Question(
+        key="power_solve_odd",
+        statement=(
+            rf"Розв'яжіть рівняння $x^{{{n}}} = {c}$."
+            "\n(Показник непарний, тож корінь один.)"
+        ),
+        parts=[Part("x", "$x$ =", b, points=1)],
+        seconds=55,
+        params={"n": n, "c": c},
+    )
+
+
+@template("power_solve_even")
+def _power_solve_even(rng: random.Random) -> Question:
+    """Обернена дія: розв'язати x^(2k) = c для ПАРНОГО степеня (два корені ±)."""
+    n = rng.choice([2, 4])
+    b = rng.randint(2, 5) if n == 2 else rng.randint(2, 3)
+    c = b**n
+    return Question(
+        key="power_solve_even",
+        statement=(
+            rf"Розв'яжіть рівняння $x^{{{n}}} = {c}$."
+            "\n(Показник парний, тож коренів два. Запишіть менший і більший.)"
+        ),
+        parts=[
+            Part("lo", "менший =", -b, points=1),
+            Part("hi", "більший =", b, points=1),
+        ],
+        seconds=60,
+        params={"n": n, "c": c},
+    )
+
+
+@template("power_graph_value")
+def _power_graph_value(rng: random.Random) -> Question:
+    """РИСУНОК: графік степеневої y=x² (парабола); зчитати значення в точці."""
+    t = rng.choice([-2, -1, 1, 2])
+    y = t * t
+    svg = coordinate_plane(parabolas=[(1, 0, 0)], points=[(t, y)])
+    return Question(
+        key="power_graph_value",
+        statement=(
+            "На рисунку зображено графік степеневої функції $y = x^2$ "
+            "(позначено одну точку). Визначте координати цієї точки: абсцису "
+            "$x$ та значення функції $y$."
+        ),
+        parts=[
+            Part("x", "$x$ =", t, points=1),
+            Part("y", "$y$ =", y, points=1),
+        ],
+        seconds=50,
+        params={"t": t},
+        svg=svg,
     )
 
 
