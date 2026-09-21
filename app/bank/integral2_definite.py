@@ -362,6 +362,8 @@ def _displacement(rng: random.Random) -> Question:
         statement=(
             rf"Тіло рухається вздовж прямої зі швидкістю $v(t) = {vtex}$ (м/с)."
             + f"\nЯкий шлях воно подолало за проміжок часу від $t = {a}$ до $t = {b}$ (с)?"
+            + "\n"
+            + r"Шлях обчислюється за формулою $s = \int_a^b v(t)\,dt$."
         ),
         parts=[Part("s", "$s$ = ", val, points=1)],
         seconds=120,
