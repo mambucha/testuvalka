@@ -131,3 +131,76 @@ def test_theme1_math():
         assert p["k"] * a["x0"] + p["b"] == 0
     for q, p, a in _each("symmetry_point"):
         assert abs(a["x"]) == abs(p["p"]) and abs(a["y"]) == abs(p["q"])
+
+
+# --- integral1: первісна та невизначений інтеграл ------------------------
+
+def test_integral1_math():
+    """Незалежно від коду шаблону: реконструюємо f з параметрів, і перевіряємо
+    F' = f (записана первісна справді первісна) та проходження через точку M."""
+    x, t = sp.Symbol("x"), sp.Symbol("t")
+
+    for q, p, a in _each("antideriv_poly_point"):
+        f = p["a"] * x**2 + p["b"] * x + p["c"]
+        assert sp.simplify(sp.diff(a["F"], x) - f) == 0
+        assert a["F"].subs(x, p["x0"]) == p["y0"]
+
+    for q, p, a in _each("antideriv_expand"):
+        f = (x + p["pp"]) ** 2 if p["kind"] == "square" else x**2 - p["pp"] ** 2
+        assert sp.simplify(sp.diff(a["F"], x) - f) == 0
+        assert a["F"].subs(x, p["x0"]) == p["y0"]
+
+    for q, p, a in _each("antideriv_cubic_value"):
+        f = p["a"] * x**3 + p["c"]
+        F = sp.integrate(f, x) + p["C"]
+        assert F.subs(x, p["x0"]) == p["y0"]          # справді через M
+        assert a["v"] == F.subs(x, p["x1"])           # число-відповідь вірне
+
+    for q, p, a in _each("antideriv_reciprocal_sq"):
+        f = sp.Rational(p["k"], 1) / x**2 + p["m"]
+        assert sp.simplify(sp.diff(a["F"], x) - f) == 0
+        assert a["F"].subs(x, p["x0"]) == p["y0"]
+
+    for q, p, a in _each("antideriv_sqrt"):
+        f = sp.Rational(p["k"], 1) / sp.sqrt(x) + p["m"]
+        assert sp.simplify(sp.diff(a["F"], x) - f) == 0
+        assert a["F"].subs(x, p["x0"]) == p["y0"]
+
+    for q, p, a in _each("antideriv_linear_power"):
+        f = (p["k"] * x + p["b"]) ** p["n"]
+        assert sp.simplify(sp.diff(a["F"], x) - f) == 0
+        assert a["F"].subs(x, p["x0"]) == p["y0"]
+
+    for q, p, a in _each("antideriv_trig_linear"):
+        f = p["a"] * (sp.cos(p["k"] * x) if p["is_cos"] else sp.sin(p["k"] * x))
+        assert sp.simplify(sp.diff(a["F"], x) - f) == 0
+        assert sp.simplify(a["F"].subs(x, 0) - p["y0"]) == 0
+
+    for q, p, a in _each("antideriv_exp_linear"):
+        f = p["a"] * sp.exp(p["k"] * x)
+        assert sp.simplify(sp.diff(a["F"], x) - f) == 0
+        assert sp.simplify(a["F"].subs(x, 0) - p["y0"]) == 0
+
+    for q, p, a in _each("antideriv_trig_table"):
+        f = sp.Rational(p["a"], 1) / (sp.cos(x) ** 2 if p["is_tan"] else sp.sin(x) ** 2)
+        assert sp.simplify(sp.diff(a["F"], x) - f) == 0
+        x0 = 0 if p["is_tan"] else sp.pi / 4
+        assert sp.simplify(a["F"].subs(x, x0) - p["y0"]) == 0
+
+    for q, p, a in _each("antideriv_find_f"):
+        F = p["a"] * x**3 + p["b"] * sp.sqrt(x)
+        assert sp.simplify(a["f"] - sp.diff(F, x)) == 0
+
+    for q, p, a in _each("antideriv_find_constant"):
+        f = p["k"] * (sp.cos(x) if p["is_cos"] else sp.sin(x))
+        x0 = sp.pi / 2 if p["is_cos"] else sp.pi
+        F0 = sp.integrate(f, x)                        # первісна зі сталою 0
+        C = p["y0"] - F0.subs(x, x0)                   # так, щоб пройти через M
+        assert a["C"] == C
+
+    for q, p, a in _each("antideriv_kinematics"):
+        v = p["p"] * t + p["q"]
+        s = sp.integrate(v, t) + p["s0"]
+        assert sp.simplify(a["s"] - s) == 0
+        assert sp.simplify(sp.diff(a["s"], t) - v) == 0
+        assert a["s"].subs(t, 0) == p["s0"]

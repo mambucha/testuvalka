@@ -143,3 +143,33 @@
     - root_simplify_var       # спрощення кореня з буквами n√(x^..y^..) (розуміння)
   max_attempts: 2
   max_reissues: 2
+
+# Тест 1 (11 клас): первісна та невизначений інтеграл.
+# 12 різних типів, беруться всі 12 (без повторів типу). Майже всі відповіді —
+# ВИРАЗ первісної F(x) (kind="expr"), тож задіяні клавіатура і живий прев'ю.
+# Повне покриття програми: таблиця первісних (степенева, 1/x², 1/√x, sin, cos,
+# eˣ, 1/cos²x, 1/sin²x), правила (сума, множник, f(kx+b)), визначення сталої C
+# за точкою, обернений зв'язок F'=f, фізичний зміст (первісна швидкості).
+- key: integral1
+  title: "Первісна та невизначений інтеграл (11 клас)"
+  question_count: 12
+  points_per_question: 1
+  bank:
+    # --- степенева / многочлени ---
+    - antideriv_poly_point       # первісна квадратного тричлена через точку
+    - antideriv_expand           # спершу розкрити дужки, тоді первісна
+    - antideriv_cubic_value      # первісна кубічної через точку -> F(x1) (число)
+    # --- таблиця первісних (дробові) ---
+    - antideriv_reciprocal_sq    # 1/x² -> −1/x
+    - antideriv_sqrt             # 1/√x -> 2√x
+    # --- правило для f(kx+b) ---
+    - antideriv_linear_power     # (kx+b)ⁿ
+    - antideriv_trig_linear      # a·sin(kx) / a·cos(kx)
+    - antideriv_exp_linear       # a·e^{kx}
+    - antideriv_trig_table       # 1/cos²x -> tg x ; 1/sin²x -> −ctg x
+    # --- зв'язок F'=f, стала C, фізичний зміст ---
+    - antideriv_find_f           # за первісною F знайти f = F'
+    - antideriv_find_constant    # знайти сталу C за точкою (число)
+    - antideriv_kinematics       # v(t) -> закон руху s(t)
+  max_attempts: 2
+  max_reissues: 2
