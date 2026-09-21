@@ -211,6 +211,22 @@ const state = {
   active: false, submitting: false, lastInput: null,
 };
 
+// Відбитки автоматизації браузера (сигнали, НЕ вирок): webdriver ловить
+// незамаскований Selenium/Playwright/Puppeteer; решта — евристики headless.
+function clientEnv(){
+  const nav = navigator;
+  let plugins = 0, langs = 0;
+  try { plugins = (nav.plugins && nav.plugins.length) || 0; } catch(e){}
+  try { langs = (nav.languages && nav.languages.length) || 0; } catch(e){}
+  return {
+    webdriver: nav.webdriver === true,
+    headless: /headless/i.test(nav.userAgent || ""),
+    noPlugins: plugins === 0,
+    noLangs: langs === 0,
+    ua: (nav.userAgent || "").slice(0, 180),
+  };
+}
+
 // --- сесія в localStorage (для відновлення після перезавантаження) ---
 function sessKey(k){ return "testuvalka:session:" + k; }
 function saveSession(){ try { localStorage.setItem(sessKey(state.testKey),
@@ -323,6 +339,7 @@ async function doStart(){
     if (!r.ok){ $("login-err").textContent = data.detail || "Не вдалося почати тест."; return; }
     state.testKey = key; state.attemptId = data.attempt_id; state.token = data.token;
     saveSession();
+    sendEvent("client_env", clientEnv());  // сигнали автоматизації на старті
     await loadCurrent();
   } catch(e){ $("login-err").textContent = "Немає зв'язку із сервером."; }
   finally { $("btn-start").disabled = !$("agree").checked; }

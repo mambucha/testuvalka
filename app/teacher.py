@@ -29,6 +29,12 @@ try:
 except ZoneInfoNotFoundError:  # запобіжник: без tz-бази не валимо кабінет
     _LOCAL_TZ = timezone.utc
 
+# «Підозріло швидко»: правильна відповідь швидше за _FAST_SECONDS — сигнал; якщо
+# таких пунктів _FAST_MIN_COUNT і більше — прапорець (типова ознака бота — не
+# один везучий пункт, а надлюдська швидкість по багатьох). Пороги — під дані.
+_FAST_SECONDS = float(os.getenv("TESTUVALKA_FAST_SECONDS", "6"))
+_FAST_MIN_COUNT = int(os.getenv("TESTUVALKA_FAST_COUNT", "3"))
+
 RESULT_COLS = [
     "group", "full_name", "test_key", "attempt_no", "status",
     "score", "max_score", "percent", "started_at", "finished_at",
@@ -144,11 +150,28 @@ def anomalies(db: Session, test_key: str) -> list[dict]:
             for q in a.questions
             if q.started_at and q.submitted_at
         ]
+        # сигнали клік-бота (НЕ вирок): автоматизація браузера + надлюдська
+        # швидкість на ПРАВИЛЬНИХ пунктах.
+        env = next(
+            (e.payload for e in events
+             if e.type == "client_env" and isinstance(e.payload, dict)),
+            {},
+        )
+        webdriver = bool(env.get("webdriver"))
+        fast_correct = sum(
+            1 for q in a.questions
+            if q.started_at and q.submitted_at and (q.score or 0) > 0
+            and (q.submitted_at - q.started_at).total_seconds() < _FAST_SECONDS
+        )
         flags = []
         if paste:
             flags.append("вставка")
         if blur:
             flags.append("перемикання вкладки")
+        if webdriver:
+            flags.append("автоматизація")
+        if fast_correct >= _FAST_MIN_COUNT:
+            flags.append("швидко")
         out.append(
             {
                 "attempt_id": a.id,
@@ -163,6 +186,8 @@ def anomalies(db: Session, test_key: str) -> list[dict]:
                 "blur_count": blur,
                 "min_seconds_per_question": round(min(secs), 1) if secs else None,
                 "avg_first_input_ms": round(sum(first_ms) / len(first_ms)) if first_ms else None,
+                "webdriver": webdriver,
+                "fast_correct": fast_correct,
                 "flags": flags,
             }
         )

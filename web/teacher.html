@@ -73,7 +73,8 @@
     <thead><tr>
       <th>Група</th><th>Прізвище</th><th>Сп.</th><th>Статус</th><th>Бал</th>
       <th>%</th><th>Дата здачі</th><th>Вставок</th><th>Втрат фокуса</th>
-      <th>Мін. с/пункт</th><th>Сер. до вводу, мс</th><th>Прапорці</th>
+      <th>Мін. с/пункт</th><th>Сер. до вводу, мс</th>
+      <th>Швидких прав.</th><th>Автомат.</th><th>Прапорці</th>
     </tr></thead>
     <tbody></tbody>
   </table></div>
@@ -129,6 +130,8 @@ async function load(){
       a.paste_count, a.blur_count,
       a.min_seconds_per_question == null ? "—" : a.min_seconds_per_question,
       a.avg_first_input_ms == null ? "—" : a.avg_first_input_ms,
+      a.fast_correct == null ? "—" : a.fast_correct,
+      a.webdriver ? "так" : "—",
     ];
     for (const c of cells){ const td = document.createElement("td"); td.textContent = c; tr.appendChild(td); }
     const fl = document.createElement("td"); fl.className = "flag";
