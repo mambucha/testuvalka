@@ -18,3 +18,4 @@ from app.bank import theme1_functions  # noqa: F401
 from app.bank import lecture3_conics  # noqa: F401
 from app.bank import theme2_powers_roots  # noqa: F401
 from app.bank import integral1_antiderivative  # noqa: F401
+from app.bank import integral2_definite  # noqa: F401

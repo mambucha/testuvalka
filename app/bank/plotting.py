@@ -22,8 +22,25 @@ def _py(y: float) -> float:
     return round(_ORIGIN - y * _UNIT, 1)
 
 
+def region_between(upper, lower, a: float, b: float, n: int = 48):
+    """Точки многокутника області між кривими y=upper(x) (згори) та y=lower(x)
+    (знизу) на [a, b]. upper/lower — функції x. Придатне для `regions` нижче
+    (заливка криволінійної трапеції / фігури між лініями)."""
+    pts = []
+    step = (b - a) / n
+    # нижня межа зліва направо
+    for i in range(n + 1):
+        x = a + i * step
+        pts.append((x, lower(x)))
+    # верхня межа справа наліво (замикаємо контур)
+    for i in range(n + 1):
+        x = b - i * step
+        pts.append((x, upper(x)))
+    return pts
+
+
 def coordinate_plane(lines=None, points=None, parabolas=None, circles=None,
-                     ellipses=None, labeled_ticks=True) -> str:
+                     ellipses=None, regions=None, labeled_ticks=True) -> str:
     """Координатна площина з осями, сіткою та об'єктами.
 
     lines:     список прямих як (k, b) — рисуємо y = k*x + b через усе полотно.
@@ -31,6 +48,8 @@ def coordinate_plane(lines=None, points=None, parabolas=None, circles=None,
     circles:   список кіл як (cx, cy, r).
     ellipses:  список еліпсів як (cx, cy, ra, rb) — півосі вздовж Ox і Oy.
     points:    список (x, y[, підпис]) — позначаємо кружечками.
+    regions:   список заштрихованих областей; кожна — список точок (x, y)
+               (напр. з region_between) — заливаємо напівпрозорим акцентом.
     Повертає рядок <svg>…</svg>, придатний для inline-вставки.
     """
     lines = lines or []
@@ -38,6 +57,7 @@ def coordinate_plane(lines=None, points=None, parabolas=None, circles=None,
     circles = circles or []
     ellipses = ellipses or []
     points = points or []
+    regions = regions or []
     el: list[str] = []
 
     # --- сітка ---
@@ -46,6 +66,14 @@ def coordinate_plane(lines=None, points=None, parabolas=None, circles=None,
         y = _py(i)
         el.append(f'<line x1="{x}" y1="0" x2="{x}" y2="{_SIZE}" stroke="#e6e9ee" stroke-width="1"/>')
         el.append(f'<line x1="0" y1="{y}" x2="{_SIZE}" y2="{y}" stroke="#e6e9ee" stroke-width="1"/>')
+
+    # --- заштриховані області (під осями/кривими, над сіткою) ---
+    for reg in regions:
+        poly = " ".join(f"{_px(px)},{_py(py)}" for px, py in reg)
+        el.append(
+            f'<polygon points="{poly}" fill="#2f6df6" fill-opacity="0.15" '
+            'stroke="#2f6df6" stroke-opacity="0.35" stroke-width="1"/>'
+        )
 
     # --- осі ---
     el.append(f'<line x1="0" y1="{_ORIGIN}" x2="{_SIZE}" y2="{_ORIGIN}" stroke="#3a4553" stroke-width="1.6"/>')

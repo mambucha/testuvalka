@@ -204,3 +204,55 @@ def test_integral1_math():
         assert sp.simplify(a["s"] - s) == 0
         assert sp.simplify(sp.diff(a["s"], t) - v) == 0
         assert a["s"].subs(t, 0) == p["s0"]
+
+
+# --- integral2: визначений інтеграл і площі ------------------------------
+
+def test_integral2_math():
+    """Незалежно від коду шаблону перераховуємо визначений інтеграл / площу з
+    параметрів і звіряємо з еталоном."""
+    x, t = sp.Symbol("x"), sp.Symbol("t")
+
+    for q, p, a in _each("def_nl_poly"):
+        f = p["p"] * x**2 + p["r"] * x + p["q"]
+        assert a["v"] == sp.integrate(f, (x, p["m"], p["n"]))
+
+    for q, p, a in _each("def_nl_trig"):
+        # a=k*m; або sin на [0,π/k] -> 2m, або cos на [0,π/2k] -> m
+        m = p["a"] // p["k"]
+        assert a["v"] in (2 * m, m)
+
+    for q, p, a in _each("def_nl_sqrt"):
+        assert a["v"] == sp.integrate(sp.Rational(p["a"], 1) / sp.sqrt(x), (x, p["lo"], p["hi"]))
+
+    for q, p, a in _each("def_nl_reciprocal"):
+        assert a["v"] == sp.integrate(sp.Rational(p["k"], 1) / x**2, (x, p["m"], p["n"]))
+
+    for q, p, a in _each("def_nl_from_F"):
+        F = p["c3"] * x**3 + p["c1"] * x + p["c0"]
+        assert a["v"] == F.subs(x, p["b"]) - F.subs(x, p["a"])
+
+    for q, p, a in _each("def_property_linear"):
+        assert a["v"] == p["al"] * p["P"] - p["be"] * p["Q"]
+
+    for q, p, a in _each("def_find_limit"):
+        assert sp.integrate(p["a"] * x, (x, 0, a["b"])) == p["S"]
+
+    for q, p, a in _each("area_trapezoid"):
+        assert a["S"] == sp.integrate(p["k"] * x + p["b0"], (x, 0, p["n"]))
+
+    for q, p, a in _each("area_parabola_axis"):
+        r1, r2 = p["r1"], p["r2"]
+        assert a["S"] == sp.integrate(-(x - r1) * (x - r2), (x, r1, r2))
+
+    for q, p, a in _each("area_parabola_line"):
+        r1, r2, k, m = p["r1"], p["r2"], p["k"], p["m"]
+        assert a["S"] == sp.integrate((k * x + m) - x**2, (x, r1, r2))
+
+    for q, p, a in _each("area_below_axis"):
+        h, c, r1, r2 = p["h"], p["c"], p["r1"], p["r2"]
+        integral = sp.integrate((x - h) ** 2 - c, (x, r1, r2))
+        assert integral < 0 and a["S"] == -integral   # площа = |інтеграл|
+
+    for q, p, a in _each("def_displacement"):
+        assert a["s"] == sp.integrate(p["p"] * t + p["q"], (t, p["a"], p["b"]))
