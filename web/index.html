@@ -57,6 +57,8 @@
   .kbd-panel button:active { background:#dfe8ff; transform:translateY(1px); }
   .kbd-panel .k-var { color:var(--accent); font-style:italic; }
   .kbd-panel .k-op { color:#5a6472; }
+  .kbd-panel .k-fn { font-size:1rem; font-weight:600; color:#2b6cb0; }
+  .kbd-panel .k-fn sup { font-size:.7em; }
   .kbd-panel .k-back { flex:2 1 0; font-size:.9rem; font-weight:600; color:var(--warn); }
   .integrity { margin:16px 0 4px; padding:10px 12px; font-size:.85rem;
                background:#fff7ed; border:1px solid #f0d7ad; border-radius:8px; color:#7a5312; }
@@ -170,6 +172,13 @@
         <button type="button" data-ins="*" class="k-op">·</button>
         <button type="button" data-ins="." class="k-op">.</button>
         <button type="button" data-act="clear" class="k-back">Стерти все</button>
+      </div>
+      <div class="kbd-row">
+        <button type="button" data-ins="sin()" data-caret="-1" class="k-fn">sin</button>
+        <button type="button" data-ins="cos()" data-caret="-1" class="k-fn">cos</button>
+        <button type="button" data-ins="tg()" data-caret="-1" class="k-fn">tg</button>
+        <button type="button" data-ins="ctg()" data-caret="-1" class="k-fn">ctg</button>
+        <button type="button" data-ins="e^()" data-caret="-1" class="k-fn">e<sup>x</sup></button>
       </div>
     </div>
     <button id="btn-submit">Відповісти</button>
@@ -392,10 +401,18 @@ function renderExprPreview(el, val){
   el.classList.add("show");
   // Наш синтаксис вводу -> LaTeX. Дужка після sqrt/abs НЕобов'язкова (щоб і
   // проміжний ввід «2sqrt(10» показувався коректно), і працює без зірочки.
+  // Функції — як оператори (tg/ctg через \operatorname, бо в KaTeX немає \tg);
+  // ctg стоїть перед tg в чергуванні, щоб «ctg» не розпалося на «c»+«tg».
+  const FN = {
+    sin: "\\sin", cos: "\\cos", tan: "\\tan", cot: "\\cot",
+    tg: "\\operatorname{tg}", ctg: "\\operatorname{ctg}", exp: "\\exp", ln: "\\ln",
+  };
   let tex = val
     .replace(/\*\*/g, "^")
     .replace(/sqrt\s*\(([^()]*)\)?/gi, (m, g) => "\\sqrt{" + (g || "") + "}")
     .replace(/abs\s*\(([^()]*)\)?/gi, (m, g) => "\\left|" + (g || "") + "\\right|")
+    .replace(/\b(ctg|tg|sin|cos|tan|cot|exp|ln)\b/g, (m) => FN[m])
+    .replace(/\^\s*\(([^()]*)\)/g, (m, g) => "^{" + g + "}")  // e^(3x) -> e^{3x}
     .replace(/\*/g, "\\cdot ");
   if (window.katex){
     try { katex.render(tex, el, {throwOnError:false, strict:false}); return; }

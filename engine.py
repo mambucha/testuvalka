@@ -148,6 +148,8 @@ ALLOWED = {
     "cos": sp.cos,
     "tan": sp.tan,
     "cot": sp.cot,
+    "tg": sp.tan,   # укр. шкільне позначення тангенса (tg = tan)
+    "ctg": sp.cot,  # укр. шкільне позначення котангенса (ctg = cot)
     "asin": sp.asin,
     "acos": sp.acos,
     "atan": sp.atan,

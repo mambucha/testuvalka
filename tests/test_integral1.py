@@ -109,6 +109,17 @@ def test_linear_power_accepts_compact_form():
         assert engine.grade(q, {"F": str(compact)})["score"] == 1.0, (i, compact)
 
 
+def test_ukrainian_tg_ctg_input_accepted():
+    """Укр. шкільне позначення tg/ctg (аліаси tan/cot у рушії) — повний бал."""
+    for i in range(15):
+        q = _build("antideriv_trig_table", i)
+        ans = str(q.parts[0].answer).replace("tan", "tg").replace("cot", "ctg")
+        assert engine.grade(q, {"F": ans})["score"] == 1.0, (i, ans)
+    # і напряму на рівні парсера
+    assert engine.equal(engine.parse_answer("tg(x)", "expr"), sp.tan(sp.Symbol("x")))
+    assert engine.equal(engine.parse_answer("ctg(2*x)", "expr"), sp.cot(2 * sp.Symbol("x")))
+
+
 def test_points_through_declared_point():
     """Записана первісна справді проходить через оголошену в умові точку M."""
     x = sp.Symbol("x")
