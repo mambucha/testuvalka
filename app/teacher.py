@@ -9,6 +9,9 @@ from __future__ import annotations
 
 import csv
 import io
+import os
+from datetime import timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -17,6 +20,14 @@ import engine
 from app import models
 from app.config import SECRET
 from app.service import ServiceError
+
+# Час у БД зберігається як наївний UTC (стандартна практика). Для викладача
+# показуємо МІСЦЕВИЙ час — за замовчуванням Київ, з автоматичним урахуванням
+# переходу літо/зима (EEST/EET). Змінити зону можна через TESTUVALKA_TZ.
+try:
+    _LOCAL_TZ = ZoneInfo(os.getenv("TESTUVALKA_TZ", "Europe/Kyiv"))
+except ZoneInfoNotFoundError:  # запобіжник: без tz-бази не валимо кабінет
+    _LOCAL_TZ = timezone.utc
 
 RESULT_COLS = [
     "group", "full_name", "test_key", "attempt_no", "status",
@@ -38,7 +49,15 @@ def _attempts(db: Session, test: models.Test) -> list[models.Attempt]:
 
 
 def _dt(value) -> str:
-    return value.isoformat(sep=" ", timespec="seconds") if value else ""
+    """Наївний UTC із БД -> рядок місцевого (київського) часу. Самі дані в БД
+    не змінюються — конвертація лише на показі."""
+    if not value:
+        return ""
+    return (
+        value.replace(tzinfo=timezone.utc)
+        .astimezone(_LOCAL_TZ)
+        .strftime("%Y-%m-%d %H:%M:%S")
+    )
 
 
 def result_rows(db: Session, test_key: str) -> list[dict]:
