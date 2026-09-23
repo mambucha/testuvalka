@@ -50,3 +50,19 @@ def test_fast_signal_on_instant_correct(client):
     row = _row(client)
     assert row["fast_correct"] >= 3
     assert "швидко" in row["flags"]
+
+
+def test_copy_signal_flagged(client):
+    """Копіювання умови під час тесту -> copy_count і прапорець «копіювання»."""
+    s = StudentClient(client)
+    s.start()
+    s.current_json()                 # питання активне
+    s.event("copy", {})              # студент скопіював умову
+    while True:
+        cur = s.current_json()
+        if cur.get("finished"):
+            break
+        s.answer(correct_answers(cur["question"]["key"], reissue=cur["reissue"]))
+    row = _row(client)
+    assert row["copy_count"] >= 1
+    assert "копіювання" in row["flags"]

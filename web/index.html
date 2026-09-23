@@ -580,6 +580,11 @@ document.addEventListener("visibilitychange", async () => {
   // відхід (> 2 с) -> питання перевидається з новими числами й повним часом.
   if (away > 2000){ await handleIntegrity("away", {ms: away}); }
 });
+// Копіювання тексту під час активного питання — типовий жест «скопіювати умову
+// в ШІ». Логуємо як сигнал (не блокуємо й не караємо: умова в кожного своя).
+["copy", "cut"].forEach((t) => {
+  document.addEventListener(t, () => { if (state.active) sendEvent("copy", {}); });
+});
 // --- попередження при спробі закрити вкладку під час тесту ---
 window.addEventListener("beforeunload", (e) => {
   if (state.active){ e.preventDefault(); e.returnValue = ""; }

@@ -140,6 +140,7 @@ def anomalies(db: Session, test_key: str) -> list[dict]:
         )
         paste = sum(1 for e in events if e.type == "paste")
         blur = sum(1 for e in events if e.type == "blur")
+        copy = sum(1 for e in events if e.type == "copy")
         first_ms = [
             e.payload["ms"]
             for e in events
@@ -166,6 +167,8 @@ def anomalies(db: Session, test_key: str) -> list[dict]:
         flags = []
         if paste:
             flags.append("вставка")
+        if copy:
+            flags.append("копіювання")
         if blur:
             flags.append("перемикання вкладки")
         if webdriver:
@@ -183,6 +186,7 @@ def anomalies(db: Session, test_key: str) -> list[dict]:
                 "max_score": a.max_score,
                 "finished_at": _dt(a.finished_at),
                 "paste_count": paste,
+                "copy_count": copy,
                 "blur_count": blur,
                 "min_seconds_per_question": round(min(secs), 1) if secs else None,
                 "avg_first_input_ms": round(sum(first_ms) / len(first_ms)) if first_ms else None,
