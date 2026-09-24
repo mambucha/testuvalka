@@ -20,3 +20,4 @@ from app.bank import theme2_powers_roots  # noqa: F401
 from app.bank import integral1_antiderivative  # noqa: F401
 from app.bank import integral2_definite  # noqa: F401
 from app.bank import integral_thematic  # noqa: F401
+from app.bank import lecture5_limits  # noqa: F401

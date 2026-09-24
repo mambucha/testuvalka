@@ -40,7 +40,8 @@ def region_between(upper, lower, a: float, b: float, n: int = 48):
 
 
 def coordinate_plane(lines=None, points=None, parabolas=None, circles=None,
-                     ellipses=None, regions=None, labeled_ticks=True) -> str:
+                     ellipses=None, regions=None, segments=None,
+                     labeled_ticks=True) -> str:
     """Координатна площина з осями, сіткою та об'єктами.
 
     lines:     список прямих як (k, b) — рисуємо y = k*x + b через усе полотно.
@@ -50,6 +51,9 @@ def coordinate_plane(lines=None, points=None, parabolas=None, circles=None,
     points:    список (x, y[, підпис]) — позначаємо кружечками.
     regions:   список заштрихованих областей; кожна — список точок (x, y)
                (напр. з region_between) — заливаємо напівпрозорим акцентом.
+    segments:  список відрізків прямих як (k, b, x1, x2) — малюємо y = kx + b
+               ЛИШЕ на [x1; x2]. Потрібно для кусково заданих функцій і графіків
+               із розривом (повна пряма тут не годиться).
     Повертає рядок <svg>…</svg>, придатний для inline-вставки.
     """
     lines = lines or []
@@ -58,6 +62,7 @@ def coordinate_plane(lines=None, points=None, parabolas=None, circles=None,
     ellipses = ellipses or []
     points = points or []
     regions = regions or []
+    segments = segments or []
     el: list[str] = []
 
     # --- сітка ---
@@ -129,6 +134,13 @@ def coordinate_plane(lines=None, points=None, parabolas=None, circles=None,
     # --- прямі (y = k*x + b); малюємо від краю до краю, svg обріже рамкою ---
     for k, b in lines:
         x1, x2 = -_HALF, _HALF
+        el.append(
+            f'<line x1="{_px(x1)}" y1="{_py(k*x1+b)}" x2="{_px(x2)}" y2="{_py(k*x2+b)}" '
+            'stroke="#2f6df6" stroke-width="2.4"/>'
+        )
+
+    # --- відрізки прямих (y = kx + b лише на [x1; x2]) ---
+    for k, b, x1, x2 in segments:
         el.append(
             f'<line x1="{_px(x1)}" y1="{_py(k*x1+b)}" x2="{_px(x2)}" y2="{_py(k*x2+b)}" '
             'stroke="#2f6df6" stroke-width="2.4"/>'
