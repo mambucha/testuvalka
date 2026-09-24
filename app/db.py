@@ -48,8 +48,13 @@ def _migrate() -> None:
 
     insp = inspect(engine)
     cols = {c["name"] for c in insp.get_columns("attempt_questions")}
+    test_cols = {c["name"] for c in insp.get_columns("tests")}
     with engine.begin() as conn:
         if "timeout_reissues" not in cols:
             conn.execute(
                 text("ALTER TABLE attempt_questions ADD COLUMN timeout_reissues INTEGER NOT NULL DEFAULT 0")
+            )
+        if "restart_after_violations" not in test_cols:
+            conn.execute(
+                text("ALTER TABLE tests ADD COLUMN restart_after_violations INTEGER")
             )

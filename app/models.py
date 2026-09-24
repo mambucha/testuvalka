@@ -41,6 +41,10 @@ class Test(Base):
     # тож підсумок = points_per_question * question_count. None -> підсумок є
     # сумою «сирих» балів полів (стара поведінка).
     points_per_question: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Скільки виходів із тесту (перемикання вкладки / втрата фокуса вікна)
+    # дозволено, перш ніж спробу анулювати й видати ПОВНІСТЮ новий варіант.
+    # None -> вимкнено (стара поведінка: лише перевидання питання).
+    restart_after_violations: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class Attempt(Base):

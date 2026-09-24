@@ -80,6 +80,11 @@ def load_tests(path: str, db=None) -> tuple[int, int]:
                 max_attempts=int(t.get("max_attempts", 1)),
                 max_reissues=int(t.get("max_reissues", 2)),
                 points_per_question=ppq,
+                restart_after_violations=(
+                    int(t["restart_after_violations"])
+                    if t.get("restart_after_violations") not in (None, "")
+                    else None
+                ),
             )
             row = db.scalar(select(models.Test).where(models.Test.key == key))
             if row is None:

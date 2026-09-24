@@ -278,10 +278,31 @@ async function sendEventAwait(type, payload){
 // Питання перевидане через вихід/вставку: повідомити й показати нове (з новими числами й повним часом).
 async function handleIntegrity(type, payload){
   const r = await sendEventAwait(type, payload);
-  if (r && r.reissued){
-    toast(type === "paste"
+  if (!r) return;
+  // Перевищено дозволену кількість виходів: спробу анульовано, варіант новий.
+  if (r.restart){
+    state.active = false;
+    if (state.tick){ clearInterval(state.tick); state.tick = null; }
+    clearSession();
+    state.attemptId = null; state.token = null;
+    show("login");
+    $("login-err").textContent =
+      "Тест перезапущено: ви кілька разів виходили з тесту (перемикання вкладки "
+      + "або перехід в інше вікно). Спроба анульована, і вам видано ПОВНІСТЮ "
+      + "новий варіант із новими завданнями. Натисніть «Почати» й виконуйте "
+      + "завдання, не залишаючи вкладку.";
+    return;
+  }
+  if (r.reissued){
+    let msg = type === "paste"
       ? "Вставлення заборонене. Питання оновлено з новими числами"
-      : "Вихід із тесту зафіксовано. Питання оновлено з новими числами");
+      : "Вихід із тесту зафіксовано. Питання оновлено з новими числами";
+    // Чесне попередження з лічильником, якщо в тесті є поріг перезапуску.
+    if (r.exit_limit && r.exits){
+      msg += ` (вихід ${r.exits} з ${r.exit_limit}; після ${r.exit_limit}`
+           + " спробу буде анульовано й видано новий варіант)";
+    }
+    toast(msg);
     await loadCurrent();
   }
 }
@@ -568,9 +589,26 @@ function fmt(x){ return (Math.round((x||0)*100)/100).toString(); }
 
 // --- телеметрія фокуса вкладки ---
 let _awayAt = 0;
+let _unfocusAt = 0;
+// Втрата фокуса ВІКНА: учень клікнув у сусіднє вікно (напр. ШІ поруч), а вкладка
+// лишилася ВИДИМОЮ — visibilitychange такого не бачить. Поріг той самий (2 с),
+// щоб випадковий клік чи системне спливне вікно не карали.
+window.addEventListener("blur", () => {
+  if (!state.active || document.hidden) return;  // сховану вкладку веде visibilitychange
+  _unfocusAt = Date.now();
+  sendEvent("winblur", {});
+});
+window.addEventListener("focus", async () => {
+  if (!state.active || !_unfocusAt) return;
+  const away = Date.now() - _unfocusAt;
+  _unfocusAt = 0;
+  if (away > 2000){ await handleIntegrity("unfocus", {ms: away}); }
+});
 document.addEventListener("visibilitychange", async () => {
   if (!state.active) return;
-  if (document.hidden){ _awayAt = Date.now(); sendEvent("blur", {}); return; }
+  // Вкладку сховали. Скидаємо лічильник фокуса вікна, бо Alt+Tab викликає
+  // обидві події — інакше один вихід порахувався б двічі.
+  if (document.hidden){ _awayAt = Date.now(); _unfocusAt = 0; sendEvent("blur", {}); return; }
   // Повернувся у вкладку.
   if (!_awayAt) return;
   const away = Date.now() - _awayAt;

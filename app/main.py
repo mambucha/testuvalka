@@ -130,8 +130,10 @@ def event(
     db: Session = Depends(get_db),
     token: str = Depends(_token),
 ):
-    # Повертає {"reissued": bool}: True -> клієнт перезапитує /current
-    # (питання перевидане з новими числами через вихід із вкладки або вставку).
+    # Повертає {"reissued", "restart", "exits", "exit_limit"}:
+    #   reissued=True -> клієнт перезапитує /current (питання з новими числами);
+    #   restart=True  -> спробу анульовано за виходи, треба почати новий варіант;
+    #   exits/exit_limit -> для попередження учню «вихід N з LIMIT».
     return service.log_event(db, attempt_id, token, body.type, body.payload)
 
 

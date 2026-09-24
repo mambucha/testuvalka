@@ -187,6 +187,15 @@ def _handle_expiry(db: Session, attempt: models.Attempt, aq: models.AttemptQuest
 # Запобіжник від нескінченного циклу перевидань за доброчесністю (глюк/зловживання).
 _MAX_INTEGRITY_REISSUES = 15
 
+# Порушення доброчесності, що перевидають питання з новими числами.
+#   away    — вкладку сховали (інша вкладка/програма/телефон) довше за поріг
+#   unfocus — вікно втратило фокус, лишаючись видимим (два вікна поруч)
+#   paste   — вставка в поле відповіді
+_INTEGRITY_REISSUE = ("away", "paste", "unfocus")
+# З них ВИХОДИ з тесту — лише вони рахуються до порога перезапису варіанта
+# (вставка — інше за природою порушення й карається перевиданням питання).
+_EXIT_TYPES = ("away", "unfocus")
+
 
 def _reissue_integrity(db: Session, attempt: models.Attempt, aq: models.AttemptQuestion, reason: str) -> bool:
     """Перевидання питання через порушення доброчесності (вихід із вкладки або
@@ -473,13 +482,43 @@ def log_event(
     attempt = _authorize(db, attempt_id, token)
     _log(db, attempt.id, type_, payload)
 
-    reissued = False
-    if type_ in ("away", "paste") and attempt.status == "active":
+    reissued = restart = False
+    limit = attempt.test.restart_after_violations
+    exits = None
+    if type_ in _INTEGRITY_REISSUE and attempt.status == "active":
         aq = _current_question(attempt)
         if aq is not None:
             reissued = _reissue_integrity(db, attempt, aq, reason=type_)
+
+        # Поріг виходів із тесту (налаштування тесту): спробу анулюємо й учень
+        # отримує ПОВНІСТЮ новий варіант. Статус "restarted" (не "voided") — щоб
+        # рахувався проти max_attempts, інакше вихід став би способом «перекинути»
+        # невдалу спробу.
+        if limit and type_ in _EXIT_TYPES:
+            # Сесія з autoflush=False, тож щойно залоговану подію треба
+            # проштовхнути в БД, інакше вона не потрапить у підрахунок.
+            db.flush()
+            exits = (
+                db.scalar(
+                    select(func.count())
+                    .select_from(models.Event)
+                    .where(
+                        models.Event.attempt_id == attempt.id,
+                        models.Event.type.in_(_EXIT_TYPES),
+                    )
+                )
+                or 0
+            )
+            if exits >= limit:
+                attempt.status = "restarted"
+                attempt.finished_at = utcnow()
+                _log(db, attempt.id, "restart_violations",
+                     {"exits": exits, "limit": limit})
+                reissued, restart = False, True
     db.commit()
-    return {"reissued": reissued}
+    # exits/exit_limit — щоб клієнт показав чесне попередження «вихід N з LIMIT»
+    return {"reissued": reissued, "restart": restart,
+            "exits": exits, "exit_limit": limit}
 
 
 def review_attempt(db: Session, attempt_id: int, token: str) -> dict:
