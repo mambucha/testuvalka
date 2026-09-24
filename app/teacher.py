@@ -139,6 +139,11 @@ def anomalies(db: Session, test_key: str) -> list[dict]:
             db.scalars(select(models.Event).where(models.Event.attempt_id == a.id))
         )
         paste = sum(1 for e in events if e.type == "paste")
+        # Подія "blur" (назва історична, у БД не міняємо) — це втрата ВИДИМОСТІ
+        # вкладки: перехід на іншу вкладку/програму, згортання, блокування екрана.
+        # Це НЕ фокус клавіатури: два вікна поруч (тест і ШІ) лишаються видимими
+        # й сюди не потрапляють. Тому в панелі колонка зветься «Перемикань
+        # вкладки» — так, як воно є насправді.
         blur = sum(1 for e in events if e.type == "blur")
         copy = sum(1 for e in events if e.type == "copy")
         first_ms = [
