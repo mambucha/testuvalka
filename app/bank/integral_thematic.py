@@ -132,7 +132,7 @@ def _poly_point(rng: random.Random) -> Question:
             Part("v", rf"$F({x1})$ =", val, points=1,
                  carry=carry_v, carry_from=("F0", "C")),
         ],
-        seconds=200,
+        seconds=150,
         params={"a": a, "b": b, "c": c, "x0": x0, "x1": x1, "C": C, "y0": y0},
     )
 
@@ -165,7 +165,7 @@ def _table_sum(rng: random.Random) -> Question:
             Part("F0", "$F_0(x)$ =", F0, kind="expr", points=1),
             Part("C", "$C$ =", C, points=1, carry=carry_c, carry_from=("F0",)),
         ],
-        seconds=190,
+        seconds=130,
         params={"a": a, "b": b, "x0": x0, "C": C, "y0": y0},
     )
 
@@ -212,7 +212,7 @@ def _rules(rng: random.Random) -> Question:
             Part("F0", "$F_0(x)$ =", F0, kind="expr", points=1),
             Part("C", "$C$ =", C, points=1, carry=carry_c, carry_from=("F0",)),
         ],
-        seconds=190,
+        seconds=140,
         params={"branch": branch, "k": k, "C": C, "y0": y0},
     )
 
@@ -242,7 +242,7 @@ def _inverse(rng: random.Random) -> Question:
                 carry_from=("f",),
             ),
         ],
-        seconds=160,
+        seconds=110,
         params={"a": a, "b": b, "x0": x0},
     )
 
@@ -283,7 +283,7 @@ def _definite_nl(rng: random.Random) -> Question:
             Part("I", "інтеграл =", val, points=1,
                  carry=_carry_diff("F0", _x, n, m), carry_from=("F0",)),
         ],
-        seconds=200,
+        seconds=150,
         params={"a": a, "b": b, "c": c, "m": m, "n": n},
     )
 
@@ -318,7 +318,7 @@ def _definite_trig(rng: random.Random) -> Question:
                 carry_from=("F0",),
             ),
         ],
-        seconds=180,
+        seconds=130,
         params={"k": k, "a": a},
     )
 
@@ -355,7 +355,7 @@ def _properties(rng: random.Random) -> Question:
                 carry_from=("I1",),
             ),
         ],
-        seconds=160,
+        seconds=90,
         params={"a": a, "b": b, "c": c, "P": P, "Q": Q, "R": R, "al": al, "be": be},
     )
 
@@ -382,7 +382,7 @@ def _find_limit(rng: random.Random) -> Question:
             Part("F0", "$F_0(x)$ =", F0, kind="expr", points=1),
             Part("b", "$b$ =", b, points=1),
         ],
-        seconds=190,
+        seconds=150,
         params={"a": a, "c": c, "b": b, "S": S},
     )
 
@@ -420,7 +420,7 @@ def _area_trapezoid(rng: random.Random) -> Question:
                 carry_from=("F0",),
             ),
         ],
-        seconds=180,
+        seconds=110,
         params={"k": k, "b0": b0, "n": n},
         svg=svg,
     )
@@ -458,7 +458,7 @@ def _area_between(rng: random.Random) -> Question:
                 carry_from=("lo", "hi"),
             ),
         ],
-        seconds=230,
+        seconds=190,
         params={"r1": r1, "r2": r2, "k": k, "m": m},
         svg=svg,
     )
@@ -514,7 +514,7 @@ def _area_below(rng: random.Random) -> Question:
                 carry_from=("I",),
             ),
         ],
-        seconds=240,
+        seconds=200,
         params={"c": c, "h": h, "r1": r1, "r2": r2},
         svg=svg,
     )
@@ -551,6 +551,6 @@ def _physics_path(rng: random.Random) -> Question:
                 carry_from=("S0",),
             ),
         ],
-        seconds=190,
+        seconds=110,
         params={"p": p, "q": q, "t1": t1, "t2": t2},
     )

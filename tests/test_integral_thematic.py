@@ -55,6 +55,24 @@ def test_every_question_is_multistep():
         assert len(q.parts) >= 2, (key, len(q.parts))
 
 
+def test_timings_are_calibrated_not_generous():
+    """Таймери — під складність, а не «про запас»: надлишок часу прямо допомагає
+    переписати умову в ШІ. Весь тест має вкладатися в урок."""
+    total = 0
+    for key in KEYS:
+        q = _build(key, 1)
+        assert 80 <= q.seconds <= 210, (key, q.seconds)
+        total += q.seconds
+    assert total <= 1800, total          # не більше 30 хв на весь тест
+
+
+def test_pure_property_task_is_shortest():
+    """Задача на властивості — без обчислень (додати й помножити), тож вона має
+    бути найкоротшою: саме там зайвий час найдорожче коштує."""
+    times = {k: _build(k, 1).seconds for k in KEYS}
+    assert times["th_definite_properties"] == min(times.values()), times
+
+
 def test_wrong_everything_gets_zero():
     for key in KEYS:
         q = _build(key, 4)
