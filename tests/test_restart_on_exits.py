@@ -80,7 +80,7 @@ def test_reaching_limit_restarts_attempt(client):
     s.current_json()                # клієнт перезапитує питання після перевидання
     r = s.event("unfocus", {"ms": 5000}).json()   # інший тип виходу теж рахується
     assert r["restart"] is True and r["exits"] == 2
-    assert _status(s.attempt_id) == "restarted"
+    assert _status(s.attempt_id) == "voided"   # анульовано, але спробу НЕ з'їдено
 
 
 def test_after_restart_student_gets_fresh_variant(client):
@@ -100,19 +100,19 @@ def test_after_restart_student_gets_fresh_variant(client):
     assert _attempt_no(s2.attempt_id) > _attempt_no(first)
 
 
-def test_restarted_attempt_counts_against_max_attempts(client):
-    """ЛАЗІВКА ЗАКРИТА: анульована за виходи спроба рахується як використана,
-    тож вихід не можна використати, щоб «перекинути» невдалу спробу."""
+def test_system_restart_never_consumes_an_attempt(client):
+    """Системне анулювання НЕ з'їдає спробу: через перебої зі світлом/зв'язком
+    вкладка ховається не з вини учня, і він не має через це лишатися без спроб.
+    (Спершу тут було навпаки — і це заблокувало реальних студентів.)"""
     _make_test(limit=2, max_attempts=2)
-    for _ in range(2):
+    for _ in range(3):                      # більше разів, ніж ліміт спроб
         s = StudentClient(client)
-        assert s.start(RK).status_code == 200
+        assert s.start(RK).status_code == 200, "учня не можна блокувати за виходи"
         s.current_json()
         s.event("away", {"ms": 5000})
         s.current_json()
         s.event("away", {"ms": 5000})
-    s3 = StudentClient(client)
-    assert s3.start(RK).status_code == 403          # ліміт спроб вичерпано
+        assert _status(s.attempt_id) == "voided"
 
 
 def test_tests_without_setting_are_unaffected(client):
