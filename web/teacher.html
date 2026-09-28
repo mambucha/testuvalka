@@ -124,8 +124,10 @@ async function load(){
     tr.addEventListener("click", () => loadDetail(a.attempt_id));
     const cells = [
       a.group, a.full_name, a.attempt_no, a.status,
-      `${fmt(a.score)} / ${fmt(a.max_score)}`,
-      a.max_score ? Math.round(100*a.score/a.max_score) + "%" : "—",
+      // Бал показуємо лише для завершених спроб: для анульованих сервер шле
+      // null, і «—» не сплутаєш з оцінкою «нуль».
+      a.score == null ? "—" : `${fmt(a.score)} / ${fmt(a.max_score)}`,
+      a.percent == null ? "—" : a.percent + "%",
       a.finished_at || "—",
       a.paste_count, a.copy_count, a.blur_count,
       a.min_seconds_per_question == null ? "—" : a.min_seconds_per_question,

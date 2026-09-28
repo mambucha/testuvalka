@@ -54,6 +54,22 @@ def _attempts(db: Session, test: models.Test) -> list[models.Attempt]:
     )
 
 
+# Статуси спроби людською мовою. "voided" — анульована (напр. система перервала
+# її, або спроба визнана недійсною): вона НЕ рахується проти ліміту спроб і НЕ є
+# результатом. Бал за такі спроби в журналі не показуємо взагалі — нуль тут
+# означав би «оцінка 0», а насправді результату просто немає.
+_STATUS_UA = {"finished": "завершено", "voided": "анульовано", "active": "у процесі"}
+
+
+def _progress(a) -> tuple[str, float | None, int | None]:
+    """(статус українською, бал, відсоток) для журналу. Бал і відсоток — лише
+    для ЗАВЕРШЕНИХ спроб; для решти None, щоб у звіті стояло «—», а не 0."""
+    done = a.status == "finished"
+    score = a.score if done else None
+    pct = round(100 * a.score / a.max_score) if done and a.max_score else None
+    return _STATUS_UA.get(a.status, a.status), score, pct
+
+
 def _dt(value) -> str:
     """Наївний UTC із БД -> рядок місцевого (київського) часу. Самі дані в БД
     не змінюються — конвертація лише на показі."""
@@ -70,15 +86,15 @@ def result_rows(db: Session, test_key: str) -> list[dict]:
     test = _test_or_404(db, test_key)
     rows = []
     for a in _attempts(db, test):
-        pct = round(100 * a.score / a.max_score) if a.max_score else 0
+        status_ua, score, pct = _progress(a)
         rows.append(
             {
                 "group": a.student.group_name,
                 "full_name": a.student.full_name,
                 "test_key": test.key,
                 "attempt_no": a.attempt_no,
-                "status": a.status,
-                "score": a.score,
+                "status": status_ua,
+                "score": score,
                 "max_score": a.max_score,
                 "percent": pct,
                 "started_at": _dt(a.started_at),
@@ -169,6 +185,7 @@ def anomalies(db: Session, test_key: str) -> list[dict]:
             if q.started_at and q.submitted_at and (q.score or 0) > 0
             and (q.submitted_at - q.started_at).total_seconds() < _FAST_SECONDS
         )
+        status_ua, score, pct = _progress(a)
         flags = []
         if paste:
             flags.append("вставка")
@@ -186,9 +203,10 @@ def anomalies(db: Session, test_key: str) -> list[dict]:
                 "group": a.student.group_name,
                 "full_name": a.student.full_name,
                 "attempt_no": a.attempt_no,
-                "status": a.status,
-                "score": a.score,
+                "status": status_ua,
+                "score": score,                # None для незавершених -> «—»
                 "max_score": a.max_score,
+                "percent": pct,
                 "finished_at": _dt(a.finished_at),
                 "paste_count": paste,
                 "copy_count": copy,
