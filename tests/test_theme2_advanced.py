@@ -20,7 +20,7 @@ _BAD_NEWLINE = re.compile(r"\\n(?![a-zA-Z])")
 POWER_KEYS = [
     "pr_power_values",
     "pr_negative_power",
-    "pr_parity",
+    "pr_find_exponent",
     "pr_solve_even_power",
     "pr_solve_odd_power",
     "pr_domain_even_root",
@@ -31,7 +31,7 @@ ROOT_KEYS = [
     "pr_factor_out_letters",
     "pr_simplify_letters",
     "pr_collect_radicals",
-    "pr_rationalize",
+    "pr_root_sum_letters",
 ]
 KEYS = POWER_KEYS + ROOT_KEYS
 _x, _y = sp.Symbol("x"), sp.Symbol("y")
@@ -114,13 +114,16 @@ def test_negative_power_math():
         assert a["v2"] == sp.Rational(1, (-p["a"]) ** p["n"])
 
 
-def test_parity_math_and_no_zero_answer():
-    for i in range(50):
-        q = _build("pr_parity", i)
-        a = _a(q)
-        sign = 1 if q.params["even"] else -1
-        assert sp.simplify(a["fneg"].subs(_x, -_x) - sign * a["fneg"]) == 0
-        assert a["val"] != 0, "нульову відповідь легко вгадати"
+def test_find_exponent_math():
+    """Показник однозначно відновлюється з точки, а друге значення — з парності."""
+    for i in range(30):
+        q = _build("pr_find_exponent", i)
+        p, a = q.params, _a(q)
+        assert p["a"] ** a["n"] == p["y"]          # точка справді на графіку
+        assert a["val"] == (-p["a"]) ** a["n"]     # парність застосована
+        # показник натуральний і єдиний для цієї точки
+        others = [k for k in range(1, 13) if p["a"] ** k == p["y"]]
+        assert others == [a["n"]], (p, others)
 
 
 def test_solve_even_power_math():
@@ -169,11 +172,16 @@ def test_modulus_root_is_nonnegative_for_negative_x():
 
 
 def test_factor_out_letters_math():
-    for i in range(30):
+    """(множник перед коренем)^n * (те, що під коренем) = підкореневий вираз."""
+    degrees = set()
+    for i in range(40):
         q = _build("pr_factor_out_letters", i)
         p, a = q.params, _a(q)
-        assert sp.simplify(a["res"] ** 2 - p["inner"] * _x**2) == 0
+        n = p["n"]
+        degrees.add(n)
+        assert sp.simplify(a["coef"] ** n * a["rad"] - p["inner"] * _x**n) == 0
         assert a["rad"] == p["r"]
+    assert degrees == {2, 3}, ("корінь має бути не лише квадратним", degrees)
 
 
 def test_simplify_letters_math():
@@ -186,16 +194,32 @@ def test_simplify_letters_math():
 
 
 def test_collect_radicals_math():
+    degrees = set()
     for i in range(50):
         q = _build("pr_collect_radicals", i)
         p, a = q.params, _a(q)
+        n = p["n"]
+        degrees.add(n)
         assert p["c2"] != p["c3"], "доданки взаємно знищуються"
         assert a["coef"] == p["c1"] + p["c2"] - p["c3"] > 0
-        assert sp.simplify(a["res"] - a["coef"] * sp.sqrt(a["rad"])) == 0
+        assert a["rad"] == p["r"]
+        # кожен доданок справді зводиться до спільного кореня
+        for c in (p["c1"], p["c2"], p["c3"]):
+            assert sp.root((c**n) * p["r"], n) == c * sp.root(p["r"], n)
+    assert degrees == {2, 3}, ("корінь має бути не лише квадратним", degrees)
+
+
+def test_root_sum_letters_math():
+    for i in range(30):
+        q = _build("pr_root_sum_letters", i)
+        p, a = q.params, _a(q)
+        assert sp.simplify(a["t1"] - p["c1"] * _x) == 0
+        assert sp.simplify(a["t2"] - p["c2"] * _x) == 0
+        assert sp.simplify(a["total"] - (p["c1"] + p["c2"]) * _x) == 0
 
 
 def test_rationalize_math():
-    """Найсильніша перевірка: результат × знаменник = чисельник."""
+    """ЗАПАСНИЙ шаблон (у тест не входить). Найсильніша перевірка: результат × знаменник = чисельник."""
     for i in range(30):
         q = _build("pr_rationalize", i)
         p, a = q.params, _a(q)
@@ -227,11 +251,13 @@ def test_carry_only_where_the_step_changes_the_value():
     assert odd_seen and even_seen, (odd_seen, even_seen)
 
 
-def test_carry_wrong_radicand_keeps_final_expression():
+def test_carry_wrong_term_keeps_sum_step():
+    """Помилився в одному доданку, але суму склав зі СВОЇХ — крок зараховано."""
     for i in range(10):
-        q = _build("pr_factor_out_letters", i)
-        c = q.params["c"]
-        wrong = _a(q)["rad"] + 1
-        mine = c * _x * sp.sqrt(wrong)
-        r = engine.grade(q, {"rad": str(wrong), "res": str(mine)})
-        assert r["score"] == 1.0 and r["max"] == 2, (i, r)
+        q = _build("pr_root_sum_letters", i)
+        a = _a(q)
+        bad_t1 = a["t1"] + _x
+        r = engine.grade(q, {
+            "t1": str(bad_t1), "t2": str(a["t2"]), "total": str(bad_t1 + a["t2"]),
+        })
+        assert r["score"] == 2.0 and r["max"] == 3, (i, r)

@@ -133,45 +133,43 @@ def _negative_power(rng: random.Random) -> Question:
     )
 
 
-@template("pr_parity")
-def _parity(rng: random.Random) -> Question:
-    """Парність СУМИ степеневих: знайти f(-x) як вираз і скористатися ним."""
-    even = rng.random() < 0.5
-    # Точку добираємо так, щоб значення НЕ було нулем (нуль легко вгадати):
-    # напр. для x⁴ - 4x² воно нульове саме при x = 2.
-    while True:
-        if even:
-            a, b = rng.choice([1, 2, 3]), rng.choice([-4, -3, 3, 4])
-            f = a * _x**4 + b * _x**2
-            ftex = _sum_tex([(a, "x^4"), (b, "x^2")])
-        else:
-            a, b = rng.choice([1, 2]), rng.choice([-5, -3, 3, 5])
-            f = a * _x**5 + b * _x**3
-            ftex = _sum_tex([(a, "x^5"), (b, "x^3")])
-        fneg = sp.expand(f.subs(_x, -_x))
-        ok = [c for c in (1, 2) if fneg.subs(_x, c) != 0]
-        if ok:
-            x0 = rng.choice(ok)
-            val = fneg.subs(_x, x0)
-            break
+@template("pr_find_exponent")
+def _find_exponent(rng: random.Random) -> Question:
+    r"""Обернена задача до означення степеневої: за точкою графіка знайти
+    показник $n$, потім скористатися парністю для протилежної точки.
+
+    Це саме про СТЕПЕНЕВУ функцію $y = x^n$. Парність суми степеневих (напр.
+    $x^5 - 3x^3$) сюди не належить — то вже властивість довільної функції,
+    матеріал теми «числова функція»."""
+    a = rng.choice([2, 3])
+    n = rng.choice([3, 4, 5]) if a == 2 else rng.choice([3, 4])
+    y = a**n
+    val = (-a) ** n
+
+    def carry_val(prev):
+        k = prev["n"]
+        # Запобіжник: у полі студента може опинитися величезне число, а
+        # (-a)**1000000 рахувати нема сенсу.
+        if not getattr(k, "is_Integer", False) or not (1 <= int(k) <= 12):
+            return None
+        return sp.Integer(-a) ** int(k)
+
     return Question(
-        key="pr_parity",
+        key="pr_find_exponent",
         statement=(
-            rf"Дано функцію $f(x) = {ftex}$."
-            + "\n1) Знайдіть і спростіть $f(-x)$ — це показує, парна функція чи "
-            "непарна."
-            + rf" 2) Користуючись цим, обчисліть $f(-{x0})$."
+            r"Графік степеневої функції $y = x^n$ (де $n$ — натуральне) "
+            rf"проходить через точку $M\left({a};\ {y}\right)$."
+            + "\n1) Знайдіть показник $n$."
+            + rf" 2) Користуючись парністю функції, обчисліть $f(-{a})$ "
+            "(не підносячи до степеня заново)."
         ),
         parts=[
-            Part("fneg", "$f(-x)$ =", fneg, kind="expr", points=1),
-            Part(
-                "val", rf"$f(-{x0})$ =", val, points=1,
-                carry=lambda prev: _sub(prev["fneg"], _x, x0),
-                carry_from=("fneg",),
-            ),
+            Part("n", "$n$ =", n, points=1),
+            Part("val", rf"$f(-{a})$ =", val, points=1,
+                 carry=carry_val, carry_from=("n",)),
         ],
         seconds=110,
-        params={"even": even, "x0": x0},
+        params={"a": a, "n": n, "y": y},
     )
 
 
@@ -334,28 +332,30 @@ def _modulus_root(rng: random.Random) -> Question:
 
 @template("pr_factor_out_letters")
 def _factor_out_letters(rng: random.Random) -> Question:
-    r"""Винесення множника з-під кореня з буквою: $\sqrt{50a^2} = 5a\sqrt{2}$."""
-    c = rng.choice([2, 3, 4, 5])
-    r = rng.choice([2, 3, 5, 6, 7])
-    inner_num = c * c * r
-    res = c * _x * sp.sqrt(r)
+    r"""Винесення множника з-під кореня n-го степеня з буквою:
+    $\sqrt{50x^2} = 5x\sqrt{2}$, $\sqrt[3]{54x^3} = 3x\sqrt[3]{2}$.
+
+    Питаємо ОКРЕМО множник перед коренем і те, що лишилося під ним — так задача
+    працює для будь-якого степеня, і студенту не треба вводити знак ⁿ√."""
+    n = rng.choice([2, 3])
+    c = rng.choice([2, 3]) if n == 3 else rng.choice([2, 3, 4, 5])
+    r = rng.choice([2, 3, 5, 6, 7])       # не є точним n-м степенем
+    inner_num = (c**n) * r
+    coef = c * _x
     return Question(
         key="pr_factor_out_letters",
         statement=(
             rf"Винесіть множник з-під знака кореня (вважайте $x > 0$):"
-            + "\n" + rf"$$ \sqrt{{{inner_num}x^2}} $$"
-            + "1) Яке число лишиться під коренем? 2) Запишіть увесь вираз."
+            + "\n" + rf"$$ {_root_tex(n, f'{inner_num}{_pow_tex(chr(120), n)}')} $$"
+            + "1) Запишіть множник, який виноситься ПЕРЕД корінь."
+            + "\n2) Яке число лишиться ПІД коренем?"
         ),
         parts=[
-            Part("rad", "під коренем лишиться =", r, points=1),
-            Part(
-                "res", "результат =", res, kind="expr", points=1,
-                carry=lambda prev: c * _x * sp.sqrt(prev["rad"]),
-                carry_from=("rad",),
-            ),
+            Part("coef", "перед коренем =", coef, kind="expr", points=1),
+            Part("rad", "під коренем =", r, points=1),
         ],
         seconds=130,
-        params={"c": c, "r": r, "inner": inner_num},
+        params={"n": n, "c": c, "r": r, "inner": inner_num},
     )
 
 
@@ -394,40 +394,83 @@ def _simplify_letters(rng: random.Random) -> Question:
 
 @template("pr_collect_radicals")
 def _collect_radicals(rng: random.Random) -> Question:
-    """Зведення подібних доданків з коренями: винести множник із кожного."""
+    r"""Зведення подібних доданків з коренями n-го степеня:
+    $\sqrt{50}+\sqrt{18}-\sqrt{8} = 6\sqrt{2}$, $\sqrt[3]{54}+\sqrt[3]{16}
+    -\sqrt[3]{2} = 4\sqrt[3]{2}$."""
+    n = rng.choice([2, 3])
     r = rng.choice([2, 3, 5, 6, 7])
-    c1 = rng.choice([4, 5, 6])
-    c2 = rng.choice([2, 3])
+    if n == 2:
+        c1, c2 = rng.choice([4, 5, 6]), rng.choice([2, 3])
+    else:                                  # для кубів числа ростуть швидко
+        c1, c2 = rng.choice([3, 4]), 2
     c3 = rng.choice([v for v in (1, 2) if v != c2])   # інакше два доданки зникають
     coef = c1 + c2 - c3
-    a1, a2, a3 = c1 * c1 * r, c2 * c2 * r, c3 * c3 * r
+    a1, a2, a3 = (c1**n) * r, (c2**n) * r, (c3**n) * r
     return Question(
         key="pr_collect_radicals",
         statement=(
             r"Спростіть вираз"
-            + "\n" + rf"$$ \sqrt{{{a1}}} + \sqrt{{{a2}}} - \sqrt{{{a3}}} $$"
+            + "\n"
+            + rf"$$ {_root_tex(n, str(a1))} + {_root_tex(n, str(a2))}"
+            + rf" - {_root_tex(n, str(a3))} $$"
             + "Винесіть множник з-під кожного кореня і зведіть подібні доданки."
-            + "\n1) Який підкореневий вираз спільний? 2) Який коефіцієнт вийшов? "
-            "3) Запишіть результат."
+            + "\n1) Який підкореневий вираз лишається спільним? "
+            "2) Який коефіцієнт перед ним вийшов?"
         ),
         parts=[
             Part("rad", "спільний підкореневий =", r, points=1),
             Part("coef", "коефіцієнт =", coef, points=1),
-            Part(
-                "res", "результат =", coef * sp.sqrt(r), kind="expr", points=1,
-                carry=lambda prev: prev["coef"] * sp.sqrt(prev["rad"]),
-                carry_from=("rad", "coef"),
-            ),
         ],
-        seconds=150,
-        params={"r": r, "c1": c1, "c2": c2, "c3": c3},
+        seconds=140,
+        params={"n": n, "r": r, "c1": c1, "c2": c2, "c3": c3},
     )
 
+
+@template("pr_root_sum_letters")
+def _root_sum_letters(rng: random.Random) -> Question:
+    r"""Сума коренів РІЗНИХ степенів у буквах:
+    $\sqrt[3]{8x^3} + \sqrt{9x^2} = 2x + 3x = 5x$ (при $x>0$).
+
+    Спирається лише на добування кореня з точного степеня — те, що вже вивчали."""
+    c1 = rng.choice([2, 3])          # під кубічним коренем
+    c2 = rng.choice([2, 3, 4, 5])    # під квадратним
+    t1, t2 = c1 * _x, c2 * _x
+    total = (c1 + c2) * _x
+    return Question(
+        key="pr_root_sum_letters",
+        statement=(
+            r"Спростіть вираз (вважайте $x > 0$):"
+            + "\n"
+            + rf"$$ {_root_tex(3, f'{c1**3}x^{{3}}')} + {_root_tex(2, f'{c2**2}x^{{2}}')} $$"
+            + "1) Чому дорівнює перший доданок? 2) Другий? 3) Запишіть суму."
+        ),
+        parts=[
+            Part("t1", rf"${_root_tex(3, f'{c1**3}x^{{3}}')}$ =", t1,
+                 kind="expr", points=1),
+            Part("t2", rf"${_root_tex(2, f'{c2**2}x^{{2}}')}$ =", t2,
+                 kind="expr", points=1),
+            Part(
+                "total", "сума =", total, kind="expr", points=1,
+                carry=lambda prev: prev["t1"] + prev["t2"],
+                carry_from=("t1", "t2"),
+            ),
+        ],
+        seconds=140,
+        params={"c1": c1, "c2": c2},
+    )
+
+
+# --- ЗАПАСНІ (у банк тесту не входять) -----------------------------------
+# Раціоналізацію знаменника прибрано з тесту на прохання викладача: такого типу
+# задач із групою ще не розв'язували. Шаблон лишається — можна увімкнути пізніше.
 
 @template("pr_rationalize")
 def _rationalize(rng: random.Random) -> Question:
     """Звільнення від ірраціональності в знаменнику (сполучений вираз)."""
-    a, b = rng.choice([(7, 5), (5, 3), (11, 9), (8, 6), (10, 8)])
+    # Підкореневі мають бути ВІЛЬНІ ВІД КВАДРАТІВ, інакше вираз не в найпростішому
+    # вигляді (√8 = 2√2), а пара на кшталт (11, 9) взагалі не має ірраціональності
+    # в знаменнику (√9 = 3).
+    a, b = rng.choice([(5, 3), (7, 5), (13, 11), (7, 3), (11, 7), (6, 2), (10, 6)])
     k = rng.choice([2, 3])          # k>1: результат не дорівнює сполученому
     c = k * (a - b)
     conj = sp.sqrt(a) + sp.sqrt(b)

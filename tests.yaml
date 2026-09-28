@@ -132,17 +132,17 @@
     # --- степенева функція (6) ---
     - pr_power_values           # f(p/q) дробом + f(-p/q) через парність
     - pr_negative_power         # x^(-n): значення-дріб і знак
-    - pr_parity                 # f(-x) для суми степенів + застосування
+    - pr_find_exponent          # за точкою графіка знайти n, тоді f(-a)
     - pr_solve_even_power       # (x-c)^(2k)=a — два корені
     - pr_solve_odd_power        # (x-c)^(2k+1)=a — один, зокрема з від'ємного
     - pr_domain_even_root       # область визначення кореня парного степеня
     # --- корінь n-го степеня (6) ---
     - pr_root_of_power_letters  # 3√(-8x³) = -2x  (символьно)
     - pr_modulus_root           # √(c²x²) при x<0 -> -cx  (модуль)
-    - pr_factor_out_letters     # √(50x²) = 5x√2
+    - pr_factor_out_letters     # винесення множника, корінь n-го степеня
     - pr_simplify_letters       # n√(x^nk y^nm) + значення
-    - pr_collect_radicals       # √50+√18-√8 = 6√2 (зведення подібних)
-    - pr_rationalize            # 4/(√7-√5) = 2(√7+√5)
+    - pr_collect_radicals       # зведення подібних, корінь n-го степеня
+    - pr_root_sum_letters       # 3√(8x³) + √(9x²) = 5x
   max_attempts: 2
   max_reissues: 2
 
