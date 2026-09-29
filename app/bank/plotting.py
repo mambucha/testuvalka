@@ -40,7 +40,7 @@ def region_between(upper, lower, a: float, b: float, n: int = 48):
 
 
 def coordinate_plane(lines=None, points=None, parabolas=None, circles=None,
-                     ellipses=None, regions=None, segments=None,
+                     ellipses=None, regions=None, segments=None, curves=None,
                      labeled_ticks=True) -> str:
     """Координатна площина з осями, сіткою та об'єктами.
 
@@ -54,6 +54,9 @@ def coordinate_plane(lines=None, points=None, parabolas=None, circles=None,
     segments:  список відрізків прямих як (k, b, x1, x2) — малюємо y = kx + b
                ЛИШЕ на [x1; x2]. Потрібно для кусково заданих функцій і графіків
                із розривом (повна пряма тут не годиться).
+    curves:    список довільних кривих як (f, x1, x2), де f — функція однієї
+               змінної. Для степеневих (y = x³, y = x⁻ⁿ), яких немає серед
+               примітивів. Лінія рветься в точках розриву й за межами полотна.
     Повертає рядок <svg>…</svg>, придатний для inline-вставки.
     """
     lines = lines or []
@@ -63,6 +66,7 @@ def coordinate_plane(lines=None, points=None, parabolas=None, circles=None,
     points = points or []
     regions = regions or []
     segments = segments or []
+    curves = curves or []
     el: list[str] = []
 
     # --- сітка ---
@@ -138,6 +142,34 @@ def coordinate_plane(lines=None, points=None, parabolas=None, circles=None,
             f'<line x1="{_px(x1)}" y1="{_py(k*x1+b)}" x2="{_px(x2)}" y2="{_py(k*x2+b)}" '
             'stroke="#2f6df6" stroke-width="2.4"/>'
         )
+
+    # --- довільні криві y = f(x) ---
+    # Потрібні для степеневих функцій, яких немає серед примітивів: y = x³,
+    # y = x⁻ⁿ тощо. Лінію розриваємо там, де функція не визначена або вийшла
+    # за полотно, — інакше гілки гіперболи з'єдналися б хибною вертикаллю.
+    for fn, x1, x2 in curves:
+        run: list[str] = []
+        steps = 240
+        for i in range(steps + 1):
+            xx = x1 + (x2 - x1) * i / steps
+            try:
+                yy = fn(xx)
+            except (ZeroDivisionError, ValueError, OverflowError):
+                yy = None
+            if yy is None or abs(yy) > _HALF + 0.4:
+                if len(run) > 1:
+                    el.append(
+                        f'<polyline points="{" ".join(run)}" fill="none" '
+                        'stroke="#2f6df6" stroke-width="2.4"/>'
+                    )
+                run = []
+                continue
+            run.append(f"{_px(xx)},{_py(yy)}")
+        if len(run) > 1:
+            el.append(
+                f'<polyline points="{" ".join(run)}" fill="none" '
+                'stroke="#2f6df6" stroke-width="2.4"/>'
+            )
 
     # --- відрізки прямих (y = kx + b лише на [x1; x2]) ---
     for k, b, x1, x2 in segments:
