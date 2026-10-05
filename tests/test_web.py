@@ -55,6 +55,11 @@ def test_symbol_keyboard_present(client):
     assert 'data-ins="sqrt()"' in html  # кнопка кореня
     assert 'data-ins="7"' in html  # цифровий ряд
     assert 'data-act="clear"' in html  # кнопка «стерти все»
+    # функції: укр. tg/ctg, експонента, логарифм і факторіал (комбінаторика)
+    for ins in ('data-ins="sin()"', 'data-ins="tg()"', 'data-ins="ctg()"',
+                'data-ins="e^()"', 'data-ins="ln()"', 'data-ins="pi"',
+                'data-ins="abs()"', 'data-ins="!"'):
+        assert ins in html, ins
     assert "function kbdInsert" in html
     assert "function kbdClear" in html
     # опційна: перемикач зі станом, що запам'ятовується

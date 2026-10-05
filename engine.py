@@ -141,6 +141,7 @@ ALLOWED = {
     "e": sp.E,
     "sqrt": sp.sqrt,
     "abs": sp.Abs,
+    "factorial": sp.factorial,  # «5!» sympy сам зводить до factorial(5)
     "exp": sp.exp,
     "ln": sp.log,
     "log": sp.log,
@@ -168,6 +169,14 @@ SAFE_GLOBALS: dict[str, Any] = {
 SAFE_GLOBALS.update(ALLOWED)
 
 _FORBIDDEN = ("__", "lambda", "import", "exec", "eval", "open", "globals", "getattr")
+
+# Факторіал потрібен у комбінаториці: відповідь природно писати як 10!/(7!*3!).
+# Але sympy обчислює його ЖАДІБНО вже на етапі парсингу, тож factorial(10**9)
+# з'їв би всю пам'ять ще до того, як спрацює таймаут воркера. Тому дозволяємо
+# факторіал ЛИШЕ від цілого числа і лише до 50! — у задачах банку найбільше
+# n = 26, тож запас величезний, а 50! обчислюється мікросекунди.
+_FACT_LIMIT = 50
+_FACT_MAX_COUNT = 6
 
 
 class BadInput(ValueError):
@@ -216,6 +225,25 @@ def parse_answer(raw: str, kind: str = "number"):
     for exponent in _re.findall(r"\*\*\s*(\d+)", powered):
         if int(exponent) > 12:
             raise BadInput("надто великий показник степеня")
+    # Факторіал — так само синтаксично, ДО parse_expr (див. _FACT_LIMIT вище).
+    if powered.count("!") > _FACT_MAX_COUNT:
+        raise BadInput("надто багато факторіалів")
+    for digits in _re.findall(r"(\d*)\s*!", powered):
+        if not digits:
+            raise BadInput("факторіал можна брати лише від цілого числа")
+        if int(digits) > _FACT_LIMIT:
+            raise BadInput(f"надто великий факторіал (не більше {_FACT_LIMIT}!)")
+    calls = _re.findall(r"factorial\s*\(\s*([^()]*?)\s*\)", powered)
+    if len(calls) != powered.count("factorial"):
+        raise BadInput("пишіть факторіал як 5! або factorial(5)")
+    for arg in calls:
+        if not arg.isdigit():
+            raise BadInput("факторіал можна брати лише від цілого числа")
+        if int(arg) > _FACT_LIMIT:
+            raise BadInput(f"надто великий факторіал (не більше {_FACT_LIMIT}!)")
+    # 2**10! розкрилося б у 2**3628800 — показник обходить перевірку вище.
+    if _re.search(r"\*\*\s*\(?\s*\d*\s*(?:!|factorial)", powered):
+        raise BadInput("факторіал у показнику степеня не допускається")
     if any(len(tok) > 9 for tok in _split_numbers(powered)):
         raise BadInput("надто велике число")
     if kind == "number":

@@ -107,6 +107,32 @@ def test_expression_form_accepted():
     assert r["score"] == r["max"], r
 
 
+def test_factorial_form_accepted():
+    """Підручник записує сполуки факторіалами — цю форму теж приймаємо."""
+    for i in range(10):
+        q = _build("cmb_arrangements_vs_combinations", i)
+        n, k = q.params["n"], q.params["k"]
+        r = engine.grade(q, {
+            "ordered": f"{n}!/{n - k}!",                  # A(n,k) = n!/(n-k)!
+            "unordered": f"{n}!/({n - k}!*{k}!)",         # C(n,k)
+            "times": f"{k}!",
+        })
+        assert r["score"] == r["max"], (i, n, k, r)
+
+    for i in range(10):
+        q = _build("cmb_permutations", i)
+        n, g = q.params["n"], q.params["g"]
+        r = engine.grade(q, {"all": f"{n}!", "firstg": f"{g}!*{n - g}!"})
+        scored = {d["part"]: d["score"] for d in r["parts"]}
+        assert scored["all"] == 1 and scored["firstg"] == 1, (i, n, g, r)
+
+    for i in range(10):
+        q = _build("cmb_team_with_fixed", i)
+        n, k = q.params["n"], q.params["k"]
+        r = engine.grade(q, {"all": f"{n}!/({n - k}!*{k}!)"})
+        assert r["parts"][0]["score"] == 1, (i, n, k, r)
+
+
 def test_statements_katex_no_literal_newline():
     for key in KEYS:
         for i in range(4):

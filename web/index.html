@@ -180,6 +180,13 @@
         <button type="button" data-ins="ctg()" data-caret="-1" class="k-fn">ctg</button>
         <button type="button" data-ins="e^()" data-caret="-1" class="k-fn">e<sup>x</sup></button>
       </div>
+      <div class="kbd-row">
+        <button type="button" data-ins="!" class="k-fn">n!</button>
+        <button type="button" data-ins="ln()" data-caret="-1" class="k-fn">ln</button>
+        <button type="button" data-ins="pi" class="k-fn">π</button>
+        <button type="button" data-ins="abs()" data-caret="-1" class="k-fn">|x|</button>
+        <button type="button" data-ins="e" class="k-fn">e</button>
+      </div>
     </div>
     <button id="btn-submit">Відповісти</button>
     <div id="quiz-err" class="err"></div>
@@ -449,6 +456,7 @@ function renderExprPreview(el, val){
     .replace(/\*\*/g, "^")
     .replace(/sqrt\s*\(([^()]*)\)?/gi, (m, g) => "\\sqrt{" + (g || "") + "}")
     .replace(/abs\s*\(([^()]*)\)?/gi, (m, g) => "\\left|" + (g || "") + "\\right|")
+    .replace(/factorial\s*\(([^()]*)\)?/gi, (m, g) => (g || "") + "!")
     .replace(/\b(ctg|tg|sin|cos|tan|cot|exp|ln)\b/g, (m) => FN[m])
     .replace(/\^\s*\(([^()]*)\)/g, (m, g) => "^{" + g + "}")  // e^(3x) -> e^{3x}
     .replace(/\*/g, "\\cdot ");
