@@ -1,8 +1,8 @@
-"""Журнал: анульована спроба — це НЕ оцінка «нуль».
+"""Журнал: анульована спроба – це НЕ оцінка «нуль».
 
 Раніше анульовані (voided) спроби показувалися як 0/12 і 0%, що в журналі
 виглядало як двійка. Тепер бал і відсоток для незавершених спроб не показуються
-(«—»), а статус подано українською.
+(«–»), а статус подано українською.
 """
 
 from app import models
@@ -71,5 +71,5 @@ def test_csv_leaves_score_empty_for_voided(client):
     body = client.get("/api/teacher/results?test_key=demo", headers=H).text
     line = next(ln for ln in body.splitlines() if DEV_FULL_NAME in ln)
     assert "анульовано" in line
-    # бал і відсоток — порожні клітинки, а не нулі
+    # бал і відсоток – порожні клітинки, а не нулі
     assert ",0," not in line and not line.rstrip().endswith(",0")

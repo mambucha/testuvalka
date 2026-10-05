@@ -2,7 +2,7 @@
 
 Телеметрія працює на політику, а не на звинувачення (п. 3.4, 6.4): тут лише
 показуємо СИРІ сигнали (вставки, перемикання вкладки, час на пункт). Пороги
-автоворідингу підбираються за даними пілоту — навмисно НЕ автоматизовано тут.
+автоворідингу підбираються за даними пілоту – навмисно НЕ автоматизовано тут.
 """
 
 from __future__ import annotations
@@ -22,16 +22,16 @@ from app.config import SECRET
 from app.service import ServiceError
 
 # Час у БД зберігається як наївний UTC (стандартна практика). Для викладача
-# показуємо МІСЦЕВИЙ час — за замовчуванням Київ, з автоматичним урахуванням
+# показуємо МІСЦЕВИЙ час – за замовчуванням Київ, з автоматичним урахуванням
 # переходу літо/зима (EEST/EET). Змінити зону можна через TESTUVALKA_TZ.
 try:
     _LOCAL_TZ = ZoneInfo(os.getenv("TESTUVALKA_TZ", "Europe/Kyiv"))
 except ZoneInfoNotFoundError:  # запобіжник: без tz-бази не валимо кабінет
     _LOCAL_TZ = timezone.utc
 
-# «Підозріло швидко»: правильна відповідь швидше за _FAST_SECONDS — сигнал; якщо
-# таких пунктів _FAST_MIN_COUNT і більше — прапорець (типова ознака бота — не
-# один везучий пункт, а надлюдська швидкість по багатьох). Пороги — під дані.
+# «Підозріло швидко»: правильна відповідь швидше за _FAST_SECONDS – сигнал; якщо
+# таких пунктів _FAST_MIN_COUNT і більше – прапорець (типова ознака бота – не
+# один везучий пункт, а надлюдська швидкість по багатьох). Пороги – під дані.
 _FAST_SECONDS = float(os.getenv("TESTUVALKA_FAST_SECONDS", "6"))
 _FAST_MIN_COUNT = int(os.getenv("TESTUVALKA_FAST_COUNT", "3"))
 
@@ -54,16 +54,16 @@ def _attempts(db: Session, test: models.Test) -> list[models.Attempt]:
     )
 
 
-# Статуси спроби людською мовою. "voided" — анульована (напр. система перервала
+# Статуси спроби людською мовою. "voided" – анульована (напр. система перервала
 # її, або спроба визнана недійсною): вона НЕ рахується проти ліміту спроб і НЕ є
-# результатом. Бал за такі спроби в журналі не показуємо взагалі — нуль тут
+# результатом. Бал за такі спроби в журналі не показуємо взагалі – нуль тут
 # означав би «оцінка 0», а насправді результату просто немає.
 _STATUS_UA = {"finished": "завершено", "voided": "анульовано", "active": "у процесі"}
 
 
 def _progress(a) -> tuple[str, float | None, int | None]:
-    """(статус українською, бал, відсоток) для журналу. Бал і відсоток — лише
-    для ЗАВЕРШЕНИХ спроб; для решти None, щоб у звіті стояло «—», а не 0."""
+    """(статус українською, бал, відсоток) для журналу. Бал і відсоток – лише
+    для ЗАВЕРШЕНИХ спроб; для решти None, щоб у звіті стояло «–», а не 0."""
     done = a.status == "finished"
     score = a.score if done else None
     pct = round(100 * a.score / a.max_score) if done and a.max_score else None
@@ -72,7 +72,7 @@ def _progress(a) -> tuple[str, float | None, int | None]:
 
 def _dt(value) -> str:
     """Наївний UTC із БД -> рядок місцевого (київського) часу. Самі дані в БД
-    не змінюються — конвертація лише на показі."""
+    не змінюються – конвертація лише на показі."""
     if not value:
         return ""
     return (
@@ -123,7 +123,7 @@ _XLSX_HEADERS = [
 
 
 def results_xlsx(db: Session, test_key: str) -> bytes:
-    """Журнал оцінок як справжній .xlsx — відкривається в Excel одразу в колонки
+    """Журнал оцінок як справжній .xlsx – відкривається в Excel одразу в колонки
     (без проблем із роздільником, на відміну від CSV в українській локалі)."""
     from openpyxl import Workbook  # ліниво: залежність потрібна лише тут
     from openpyxl.styles import Font
@@ -155,11 +155,11 @@ def anomalies(db: Session, test_key: str) -> list[dict]:
             db.scalars(select(models.Event).where(models.Event.attempt_id == a.id))
         )
         paste = sum(1 for e in events if e.type == "paste")
-        # Подія "blur" (назва історична, у БД не міняємо) — це втрата ВИДИМОСТІ
+        # Подія "blur" (назва історична, у БД не міняємо) – це втрата ВИДИМОСТІ
         # вкладки: перехід на іншу вкладку/програму, згортання, блокування екрана.
         # Це НЕ фокус клавіатури: два вікна поруч (тест і ШІ) лишаються видимими
         # й сюди не потрапляють. Тому в панелі колонка зветься «Перемикань
-        # вкладки» — так, як воно є насправді.
+        # вкладки» – так, як воно є насправді.
         blur = sum(1 for e in events if e.type == "blur")
         copy = sum(1 for e in events if e.type == "copy")
         first_ms = [
@@ -204,7 +204,7 @@ def anomalies(db: Session, test_key: str) -> list[dict]:
                 "full_name": a.student.full_name,
                 "attempt_no": a.attempt_no,
                 "status": status_ua,
-                "score": score,                # None для незавершених -> «—»
+                "score": score,                # None для незавершених -> «–»
                 "max_score": a.max_score,
                 "percent": pct,
                 "finished_at": _dt(a.finished_at),
@@ -218,13 +218,13 @@ def anomalies(db: Session, test_key: str) -> list[dict]:
                 "flags": flags,
             }
         )
-    # Спершу спроби з прапорцями — їх викладач перегляне насамперед.
+    # Спершу спроби з прапорцями – їх викладач перегляне насамперед.
     out.sort(key=lambda r: (not r["flags"], r["group"], r["full_name"]))
     return out
 
 
 def attempt_detail(db: Session, attempt_id: int) -> dict:
-    """Поіменний розбір спроби: по кожному питанню — що студент увів, який
+    """Поіменний розбір спроби: по кожному питанню – що студент увів, який
     еталон і скільки балів. Еталони перераховуються з seed (у базі їх немає).
     Лише для викладача (ендпоінт за токеном)."""
     attempt = db.get(models.Attempt, attempt_id)
@@ -233,7 +233,7 @@ def attempt_detail(db: Session, attempt_id: int) -> dict:
 
     questions = []
     for aq in sorted(attempt.questions, key=lambda q: q.ordinal):
-        # Перерахунок еталона з seed. Якщо шаблон відтоді видалено/змінено —
+        # Перерахунок еталона з seed. Якщо шаблон відтоді видалено/змінено –
         # не падаємо: показуємо введене й бали без еталона.
         try:
             built = engine.build(
@@ -261,14 +261,14 @@ def attempt_detail(db: Session, attempt_id: int) -> dict:
                 {
                     "label": p.label if p else pk,
                     "raw": a.raw if a else "",
-                    "expected": str(p.answer) if p else "—",
+                    "expected": str(p.answer) if p else "–",
                     "correct": bool(mx and got >= mx),
                     "score": got,
                     "max": mx,
                 }
             )
         if aq.score is None:
-            verdict = "—"
+            verdict = "–"
         elif aq.max_score and aq.score >= aq.max_score:
             verdict = "повністю"
         elif aq.score > 0:

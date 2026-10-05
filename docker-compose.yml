@@ -1,7 +1,7 @@
 # Продакшн-стек для однієї ВМ (Oracle Always Free / Hetzner тощо):
-#   app   — наш застосунок (FastAPI + uvicorn)
-#   db    — PostgreSQL (дані в постійному томі, переживають перезапуск і редеплой)
-#   caddy — HTTPS-проксі (сам отримує сертифікат Let's Encrypt для домену)
+#   app   – наш застосунок (FastAPI + uvicorn)
+#   db    – PostgreSQL (дані в постійному томі, переживають перезапуск і редеплой)
+#   caddy – HTTPS-проксі (сам отримує сертифікат Let's Encrypt для домену)
 #
 # Значення секретів беруться з файла .env поруч (див. DEPLOY_ORACLE.md).
 # Запуск:   docker compose up -d --build

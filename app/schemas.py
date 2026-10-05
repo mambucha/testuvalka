@@ -1,6 +1,6 @@
 """Pydantic-схеми запитів і відповідей API (контракт розділу 6.3).
 
-Жодна зі схем відповіді НЕ містить полів для еталонних відповідей — правильні
+Жодна зі схем відповіді НЕ містить полів для еталонних відповідей – правильні
 відповіді ніколи не потрапляють у браузер.
 """
 
@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 
 class StartIn(BaseModel):
     test_key: str
-    full_name: str  # прізвище (та ім'я) — самопроголошена особа
+    full_name: str  # прізвище (та ім'я) – самопроголошена особа
     group: str
 
 
@@ -42,7 +42,7 @@ class CurrentOut(BaseModel):
     # Поточне питання (коли спроба активна):
     ordinal: int | None = None
     total: int | None = None
-    reissue: int | None = None  # номер перевидання питання (0 — початкове)
+    reissue: int | None = None  # номер перевидання питання (0 – початкове)
     question: QuestionPublic | None = None
     seconds_left: int | None = None
     # Підсумок (коли спроба завершена):

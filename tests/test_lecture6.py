@@ -1,9 +1,9 @@
-"""Лекція 6 (вища математика): похідна — таблиця і техніки диференціювання.
+"""Лекція 6 (вища математика): похідна – таблиця і техніки диференціювання.
 
 Домовленості з викладачем закріплені тестами, щоб їх не втратити:
-  * ЗАСТОСУВАНЬ похідної (дотична, швидкість, монотонність, екстремуми) немає —
+  * ЗАСТОСУВАНЬ похідної (дотична, швидкість, монотонність, екстремуми) немає –
     їх ще не вивчали;
-  * значення похідної В ТОЧЦІ не шукаємо — увесь тест про техніку;
+  * значення похідної В ТОЧЦІ не шукаємо – увесь тест про техніку;
   * тангенс позначається tg, а не tan.
 
 Кожну похідну перераховуємо НЕЗАЛЕЖНО: функцію відтворюємо з `q.params` і
@@ -19,7 +19,7 @@ import yaml
 import engine
 from app.config import SECRET
 
-# Літеральний "\n" замість переносу; \ne, \nu — валідні команди LaTeX.
+# Літеральний "\n" замість переносу; \ne, \nu – валідні команди LaTeX.
 _BAD_NEWLINE = re.compile(r"\\n(?![a-zA-Z])")
 
 TABLE = ["dv_power_root", "dv_trig_table", "dv_exp_log"]
@@ -91,7 +91,7 @@ def test_every_task_is_multistep():
 
 
 def test_no_figures():
-    """Рисунки тут ні до чого — усе про техніку диференціювання."""
+    """Рисунки тут ні до чого – усе про техніку диференціювання."""
     for key in KEYS:
         assert _build(key, 3).svg is None, key
 
@@ -108,7 +108,7 @@ def test_timings_calibrated():
 # --- домовленості про обсяг --------------------------------------------
 
 def test_no_derivative_at_a_point():
-    """«Давай значення похідної в точці не шукати» — усі поля мають бути виразами."""
+    """«Давай значення похідної в точці не шукати» – усі поля мають бути виразами."""
     for key in KEYS:
         for i in range(6):
             q = _build(key, i)
@@ -120,7 +120,7 @@ def test_no_derivative_at_a_point():
 
 
 def test_final_answer_is_always_an_expression():
-    """Відповідь — вираз зі змінною, а не число: одним числом не поділишся."""
+    """Відповідь – вираз зі змінною, а не число: одним числом не поділишся."""
     for key in KEYS:
         for i in range(6):
             last = _build(key, i).parts[-1].answer
@@ -129,7 +129,7 @@ def test_final_answer_is_always_an_expression():
 
 
 def test_no_applications_of_derivative():
-    """Застосування похідної ще не вивчали — у тесті їх бути не має."""
+    """Застосування похідної ще не вивчали – у тесті їх бути не має."""
     banned = ("дотичн", "швидкіст", "швидкост", "монотон", "екстремум",
               "зроста", "спада", "опукл", "асимптот", "кут нахилу",
               "найбільше значення", "найменше значення")
@@ -141,7 +141,7 @@ def test_no_applications_of_derivative():
 
 
 def test_ukrainian_tg_notation():
-    """В українській школі тангенс — tg, котангенс — ctg."""
+    """В українській школі тангенс – tg, котангенс – ctg."""
     for key in KEYS:
         for i in range(6):
             s = _build(key, i).statement
@@ -168,7 +168,7 @@ def test_power_root_math():
         f = head + p["b"] * sp.sqrt(_x) + sp.Integer(p["c"]) / _x
         assert _same(a["d1"], sp.diff(head, _x)), (i, a["d1"])
         assert _same(a["dy"], sp.diff(f, _x)), (i, a["dy"])
-        # похідна кореня дає x^(-1/2) — саме той крок таблиці, що найчастіше гублять
+        # похідна кореня дає x^(-1/2) – саме той крок таблиці, що найчастіше гублять
         assert a["dy"].has(_x ** sp.Rational(-1, 2)), (i, a["dy"])
         assert a["dy"].has(_x ** -2), (i, a["dy"])
 
@@ -297,7 +297,7 @@ def test_second_trig_math():
 # --- стійкість до списування -------------------------------------------
 
 def test_variants_differ_between_students():
-    """У кожного свої коефіцієнти — готова відповідь сусіда не підходить."""
+    """У кожного свої коефіцієнти – готова відповідь сусіда не підходить."""
     for key in KEYS:
         finals = {str(_build(key, i).parts[-1].answer) for i in range(40)}
         assert len(finals) >= 5, (key, len(finals))
@@ -307,7 +307,7 @@ def test_equivalent_student_forms_accepted():
     """Порівняння символьне: форма запису відповіді не має значення."""
     q = _build("dv_trig_table", 0)
     p = q.params
-    # (tg x)' записують і як 1/cos²x, і як 1 + tg²x — приймаємо обидві
+    # (tg x)' записують і як 1/cos²x, і як 1 + tg²x – приймаємо обидві
     r = engine.grade(q, {
         "d1": f"{p['a']}*cos(x) - {p['b']}*sin(x)",
         "dy": f"{p['a']}*cos(x) - {p['b']}*sin(x) + {p['c']}*(1 + tg(x)^2)",
@@ -316,7 +316,7 @@ def test_equivalent_student_forms_accepted():
 
     q = _build("dv_product", 0)
     a = _a(q)
-    # e^x і exp(x) — те саме; розкритий добуток теж приймається
+    # e^x і exp(x) – те саме; розкритий добуток теж приймається
     sub = {k: str(v).replace("exp(x)", "e^x") for k, v in a.items()}
     sub["dy"] = str(sp.expand(a["dy"])).replace("exp(x)", "e^x")
     assert engine.grade(q, sub)["score"] == q.max_score, sub
@@ -339,7 +339,7 @@ def test_carry_product_rule_keeps_two_of_three():
 
 
 def test_carry_second_derivative_follows_first():
-    """Помилилися в y' — але y'' від СВОГО y' знайдено правильно."""
+    """Помилилися в y' – але y'' від СВОГО y' знайдено правильно."""
     for i in range(10):
         q = _build("dv_second_poly", i)
         a = _a(q)

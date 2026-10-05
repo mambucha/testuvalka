@@ -1,15 +1,15 @@
 """Комбінаторика (§12–§13 Мерзляка, 11 клас): правила суми й добутку та сполуки.
 
 Кожну відповідь перевіряємо ДРУГИМ, незалежним способом:
-  * цифрові задачі шаблон рахує перебором (itertools.product) — тут їх
+  * цифрові задачі шаблон рахує перебором (itertools.product) – тут їх
     перевіряємо замкненими формулами ($m^k$, $A_m^k$ тощо);
-  * задачі на сполуки шаблон рахує через math.comb/perm/factorial — тут їх
+  * задачі на сполуки шаблон рахує через math.comb/perm/factorial – тут їх
     перевіряємо ПЕРЕБОРОМ усіх підмножин і перестановок.
 Тож помилка у формулі не може «підтвердити сама себе».
 
 Окремо закріплено те, що робить тест стійким до списування: у кожного свій
 набір цифр і свої n, k (перевіряємо, що варіантів справді багато), кожна
-задача багатокрокова, а відповідь можна ввести — тобто вона не довша за ті
+задача багатокрокова, а відповідь можна ввести – тобто вона не довша за ті
 9 цифр, які приймає парсер.
 """
 
@@ -25,7 +25,7 @@ import yaml
 import engine
 from app.config import SECRET
 
-# Літеральний "\n" замість переносу; \ne, \nu — валідні команди LaTeX.
+# Літеральний "\n" замість переносу; \ne, \nu – валідні команди LaTeX.
 _BAD_NEWLINE = re.compile(r"\\n(?![a-zA-Z])")
 
 RULES = ["cmb_sum_product", "cmb_menu", "cmb_digits_zero",
@@ -47,8 +47,8 @@ def _a(q):
 
 def test_has_12_types_over_both_paragraphs():
     assert len(KEYS) == len(set(KEYS)) == 12
-    assert len(RULES) == 6, "§12 — правила суми та добутку"
-    assert len(SETS) == 6, "§13 — перестановки, розміщення, комбінації"
+    assert len(RULES) == 6, "§12 – правила суми та добутку"
+    assert len(SETS) == 6, "§13 – перестановки, розміщення, комбінації"
 
 
 def test_yaml_bank_matches_this_module():
@@ -77,7 +77,7 @@ def test_garbage_gets_zero():
 
 
 def test_small_number_in_every_field_scores_almost_nothing():
-    """Щоб перенесення помилки не стало лазівкою: «1» всюди — не відповідь."""
+    """Щоб перенесення помилки не стало лазівкою: «1» всюди – не відповідь."""
     for key in KEYS:
         for i in range(6):
             q = _build(key, i)
@@ -87,7 +87,7 @@ def test_small_number_in_every_field_scores_almost_nothing():
 
 
 def test_answers_are_enterable():
-    """Парсер не приймає чисел довших за 9 цифр — відповідь мусить влазити."""
+    """Парсер не приймає чисел довших за 9 цифр – відповідь мусить влазити."""
     for key in KEYS:
         for i in range(20):
             for part in _build(key, i).parts:
@@ -96,7 +96,7 @@ def test_answers_are_enterable():
 
 
 def test_expression_form_accepted():
-    """Мерзляк лишає відповідь виразом ($26^3+26^4$) — ми теж приймаємо."""
+    """Мерзляк лишає відповідь виразом ($26^3+26^4$) – ми теж приймаємо."""
     q = _build("cmb_sequences", 2)
     m, k = q.params["m"], q.params["k"]
     r = engine.grade(q, {
@@ -108,7 +108,7 @@ def test_expression_form_accepted():
 
 
 def test_factorial_form_accepted():
-    """Підручник записує сполуки факторіалами — цю форму теж приймаємо."""
+    """Підручник записує сполуки факторіалами – цю форму теж приймаємо."""
     for i in range(10):
         q = _build("cmb_arrangements_vs_combinations", i)
         n, k = q.params["n"], q.params["k"]
@@ -158,7 +158,7 @@ def test_no_figures():
 
 
 def test_no_probability_or_statistics():
-    """§14–§15 (ймовірність, статистика) — окрема тема, сюди не входить."""
+    """§14–§15 (ймовірність, статистика) – окрема тема, сюди не входить."""
     banned = ("ймовірн", "медіан", "мода ", "вибірк", "частот", "випадков",
               "середнє арифметичне")
     for key in KEYS:
@@ -194,21 +194,21 @@ def test_many_variants_per_template():
 
 
 def test_statement_itself_differs_between_students():
-    """Умова має відрізнятися ВИДИМО — інакше неясно, що варіанти різні."""
+    """Умова має відрізнятися ВИДИМО – інакше неясно, що варіанти різні."""
     for key in KEYS:
         first_lines = {_build(key, i).statement.split("\n")[0] for i in range(40)}
         assert len(first_lines) >= 8, (key, len(first_lines))
 
 
 # =======================================================================
-#  §12 — перевіряємо замкненими формулами (шаблон рахує перебором)
+#  §12 – перевіряємо замкненими формулами (шаблон рахує перебором)
 # =======================================================================
 
 def test_sum_product_math():
     for i in range(20):
         q = _build("cmb_sum_product", i)
         p, a = q.params, _a(q)
-        # перебір помічених маршрутів — незалежно від правила добутку
+        # перебір помічених маршрутів – незалежно від правила добутку
         via = len(list(itertools.product(range(p["a"]), range(p["b"]))))
         assert a["via"] == via == p["a"] * p["b"], i
         assert a["total"] == via + p["c"], i
@@ -220,10 +220,10 @@ def test_menu_math():
         q = _build("cmb_menu", i)
         p, a = q.params, _a(q)
         x, y, z = p["a"], p["b"], p["c"]
-        # перебір трійок — незалежно від правила добутку
+        # перебір трійок – незалежно від правила добутку
         assert a["full"] == len(list(itertools.product(range(x), range(y),
                                                        range(z)))), (i, p)
-        # обід із двох страв різного виду — три попарні добутки
+        # обід із двох страв різного виду – три попарні добутки
         assert a["two"] == x * y + x * z + y * z, (i, p)
         assert a["one"] == x + y + z, (i, p)
         assert a["full"] > a["two"] > a["one"], (i, p)
@@ -254,7 +254,7 @@ def test_digits_parity_math():
         tails = [d for d in digits if d % 2 == want]
         assert a["tails"] == len(tails), (i, p)
         assert a["total"] == (m - 1) * m ** (k - 2) * len(tails), (i, p)
-        # «усі цифри різні» — перебираємо перестановки (інший шлях, ніж product)
+        # «усі цифри різні» – перебираємо перестановки (інший шлях, ніж product)
         dist = sum(1 for t in itertools.permutations(digits, k)
                    if t[0] != 0 and t[-1] % 2 == want)
         assert a["dist"] == dist, (i, p)
@@ -268,7 +268,7 @@ def test_divisible_math():
         assert d in (2, 4, 5, 8, 25), (i, d)
         tail_len = 1 if d in (2, 5) else (3 if d == 8 else 2)
         assert a["tails"] == sum(1 for t in range(10**tail_len) if t % d == 0), (i, p)
-        # добуток «перша цифра × вільні × закінчення» — не той шлях, яким
+        # добуток «перша цифра × вільні × закінчення» – не той шлях, яким
         # шаблон рахує (він ділить межі діапазону націло)
         assert a["total"] == 9 * 10 ** (k - 1 - tail_len) * a["tails"], (i, p)
         if k <= 5:   # для коротких чисел ще й прямий перебір
@@ -284,13 +284,13 @@ def test_sequences_math():
         assert a["exact"] == m**k, (i, p)
         assert a["dist"] == math.perm(m, k), (i, p)
         assert a["both"] == m**k + m ** (k + 1), (i, p)
-        if m <= 8 and k <= 3:          # малі випадки — повним перебором
+        if m <= 8 and k <= 3:          # малі випадки – повним перебором
             assert a["exact"] == len(list(itertools.product(range(m), repeat=k)))
             assert a["dist"] == len(list(itertools.permutations(range(m), k)))
 
 
 # =======================================================================
-#  §13 — перевіряємо ПЕРЕБОРОМ (шаблон рахує формулами)
+#  §13 – перевіряємо ПЕРЕБОРОМ (шаблон рахує формулами)
 # =======================================================================
 
 @lru_cache(maxsize=None)
@@ -311,7 +311,7 @@ def test_permutations_math():
         assert a["all"] == math.factorial(n), (i, p)
         assert a["firstg"] == math.factorial(g) * math.factorial(n - g), (i, p)
         if n <= 8:
-            # перебір усіх розстановок: підручники — елементи 0..g-1
+            # перебір усіх розстановок: підручники – елементи 0..g-1
             allp = list(itertools.permutations(range(n)))
             assert a["all"] == len(allp)
             assert a["firstg"] == sum(1 for t in allp if set(t[:g]) == set(range(g)))
@@ -342,7 +342,7 @@ def test_team_with_fixed_math():
         q = _build("cmb_team_with_fixed", i)
         p, a = q.params, _a(q)
         n, k = p["n"], p["k"]
-        teams = list(itertools.combinations(range(n), k))   # староста — елемент 0
+        teams = list(itertools.combinations(range(n), k))   # староста – елемент 0
         assert a["all"] == len(teams), (i, p)
         assert a["with_head"] == sum(1 for t in teams if 0 in t), (i, p)
         assert a["without"] == sum(1 for t in teams if 0 not in t), (i, p)
@@ -356,7 +356,7 @@ def test_polygon_math():
         n, r = p["n"], p["r"]
         assert a["tri"] == _comb_count(n, 3), (i, p)
         assert a["poly"] == _comb_count(n, r), (i, p)
-        # діагоналі / усі відрізки — перебором пар вершин циклу
+        # діагоналі / усі відрізки – перебором пар вершин циклу
         pairs = list(itertools.combinations(range(n), 2))
         adjacent = sum(1 for u, v in pairs if (v - u) % n in (1, n - 1))
         assert adjacent == n, "сусідніх пар у n-кутнику рівно n"
@@ -369,7 +369,7 @@ def test_exactly_k_math():
         q = _build("cmb_exactly_k", i)
         p, a = q.params, _a(q)
         n, m, s, k = p["n"], p["m"], p["s"], p["a"]
-        # мулярі — елементи 0..m-1; перебираємо всі ланки й рахуємо потрібні
+        # мулярі – елементи 0..m-1; перебираємо всі ланки й рахуємо потрібні
         good = sum(1 for t in itertools.combinations(range(n), s)
                    if len([v for v in t if v < m]) == k)
         assert a["total"] == good, (i, p)
@@ -383,7 +383,7 @@ def test_two_lines_math():
         q = _build("cmb_two_lines", i)
         p, a = q.params, _a(q)
         np_, nq = p["p"], p["q"]
-        # точки 0..np_-1 на прямій a, решта — на прямій b
+        # точки 0..np_-1 на прямій a, решта – на прямій b
         tri = [t for t in itertools.combinations(range(np_ + nq), 3)
                if 0 < len([v for v in t if v < np_]) < 3]
         assert a["total"] == len(tri), (i, p)
@@ -440,7 +440,7 @@ def test_carry_divisible_scales_tail_count():
 
 
 def test_carry_ratio_survives_wrong_first_steps():
-    """У скільки разів більше — від СВОЇХ двох чисел."""
+    """У скільки разів більше – від СВОЇХ двох чисел."""
     hits = 0
     for i in range(20):
         q = _build("cmb_arrangements_vs_combinations", i)

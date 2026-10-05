@@ -4,7 +4,7 @@
 Принципи:
   * Клієнт НІКОЛИ не отримує еталонних відповідей. Цей модуль живе тільки на сервері.
   * Параметри задачі детерміновані від (студент, тест, питання, спроба, перевидання).
-    Той самий студент при перезаході бачить ті самі числа; нова спроба — нові.
+    Той самий студент при перезаході бачить ті самі числа; нова спроба – нові.
   * Відповідь студента парситься в обмеженому namespace. Ніякого eval.
 """
 
@@ -39,7 +39,7 @@ def seed_for(
 ) -> int:
     """Seed від HMAC: передбачити свій варіант наперед неможливо без secret.
 
-    reissue інкрементується, коли питання перевидається після обриву зв'язку —
+    reissue інкрементується, коли питання перевидається після обриву зв'язку –
     студент отримує ту саму задачу з іншими числами і повним часом.
     """
     msg = f"{student_id}|{test_key}|{question_key}|{attempt_no}|{reissue}".encode()
@@ -54,7 +54,7 @@ def seed_for(
 
 @dataclass
 class Part:
-    """Одне поле введення. Питання складається з кількох таких — це і є
+    """Одне поле введення. Питання складається з кількох таких – це і є
     проміжні результати."""
 
     key: str
@@ -66,7 +66,7 @@ class Part:
 
     # Перенесення помилки: перерахувати еталон із того, що студент ввів раніше.
     # Сигнатура: (prev: dict[str, sympy-вираз]) -> еталон | None
-    # None означає "не вдалося перерахувати" — тоді звіряємо з початковим еталоном.
+    # None означає "не вдалося перерахувати" – тоді звіряємо з початковим еталоном.
     carry: Callable[[dict[str, Any]], Any] | None = None
     carry_from: tuple[str, ...] = ()
 
@@ -79,7 +79,7 @@ class Question:
     seconds: int = 180
     params: dict[str, Any] = field(default_factory=dict)  # для логів і розбору
     # Необов'язковий рисунок до умови: готовий inline-SVG, згенерований на
-    # сервері з параметрів задачі (еталонів у ньому немає). None — без рисунка.
+    # сервері з параметрів задачі (еталонів у ньому немає). None – без рисунка.
     svg: str | None = None
 
     @property
@@ -159,7 +159,7 @@ ALLOWED = {
 TRANSFORMS = standard_transformations + (implicit_multiplication_application,)
 
 # Трансформації sympy збирають дерево через Integer/Float/Symbol, тому порожній
-# global_dict їх ламає. Кладемо рівно необхідне — і нічого зі stdlib.
+# global_dict їх ламає. Кладемо рівно необхідне – і нічого зі stdlib.
 SAFE_GLOBALS: dict[str, Any] = {
     "Integer": sp.Integer,
     "Float": sp.Float,
@@ -173,7 +173,7 @@ _FORBIDDEN = ("__", "lambda", "import", "exec", "eval", "open", "globals", "geta
 # Факторіал потрібен у комбінаториці: відповідь природно писати як 10!/(7!*3!).
 # Але sympy обчислює його ЖАДІБНО вже на етапі парсингу, тож factorial(10**9)
 # з'їв би всю пам'ять ще до того, як спрацює таймаут воркера. Тому дозволяємо
-# факторіал ЛИШЕ від цілого числа і лише до 50! — у задачах банку найбільше
+# факторіал ЛИШЕ від цілого числа і лише до 50! – у задачах банку найбільше
 # n = 26, тож запас величезний, а 50! обчислюється мікросекунди.
 _FACT_LIMIT = 50
 _FACT_MAX_COUNT = 6
@@ -217,7 +217,7 @@ def parse_answer(raw: str, kind: str = "number"):
     powered = s.replace("^", "**")
     if powered.count("**") > 4:
         raise BadInput("надто складний вираз")
-    # 9**9**9 — права асоціативність дає 9**387420489 і вішає sympy.
+    # 9**9**9 – права асоціативність дає 9**387420489 і вішає sympy.
     # Шукаємо два ** підряд через один атом: x**2+y**2 сюди не потрапляє,
     # бо між ними стоїть знак операції.
     if _re.search(r"\*\*\s*[A-Za-z0-9.]+\s*\*\*", powered):
@@ -225,7 +225,7 @@ def parse_answer(raw: str, kind: str = "number"):
     for exponent in _re.findall(r"\*\*\s*(\d+)", powered):
         if int(exponent) > 12:
             raise BadInput("надто великий показник степеня")
-    # Факторіал — так само синтаксично, ДО parse_expr (див. _FACT_LIMIT вище).
+    # Факторіал – так само синтаксично, ДО parse_expr (див. _FACT_LIMIT вище).
     if powered.count("!") > _FACT_MAX_COUNT:
         raise BadInput("надто багато факторіалів")
     for digits in _re.findall(r"(\d*)\s*!", powered):
@@ -241,7 +241,7 @@ def parse_answer(raw: str, kind: str = "number"):
             raise BadInput("факторіал можна брати лише від цілого числа")
         if int(arg) > _FACT_LIMIT:
             raise BadInput(f"надто великий факторіал (не більше {_FACT_LIMIT}!)")
-    # 2**10! розкрилося б у 2**3628800 — показник обходить перевірку вище.
+    # 2**10! розкрилося б у 2**3628800 – показник обходить перевірку вище.
     if _re.search(r"\*\*\s*\(?\s*\d*\s*(?:!|factorial)", powered):
         raise BadInput("факторіал у показнику степеня не допускається")
     if any(len(tok) > 9 for tok in _split_numbers(powered)):
@@ -262,7 +262,7 @@ def parse_answer(raw: str, kind: str = "number"):
 
 def equal(got, expected, tol: float = 1e-6) -> bool:
     """Порівняння з точністю до алгебраїчної еквівалентності.
-    3/4, 0.75 і sqrt(9)/4 — одне й те саме."""
+    3/4, 0.75 і sqrt(9)/4 – одне й те саме."""
     try:
         diff = sp.simplify(sp.sympify(got) - sp.sympify(expected))
     except Exception:  # noqa: BLE001
@@ -298,7 +298,7 @@ def grade(question: Question, submitted: dict[str, str]) -> dict:
         if part.carry and all(k in parsed for k in part.carry_from):
             alt = part.carry(parsed)
             if alt is not None and not equal(alt, part.answer, part.tol):
-                expected = alt  # студент помилився раніше — звіряємо з його ж логікою
+                expected = alt  # студент помилився раніше – звіряємо з його ж логікою
                 carried = True
 
         try:
@@ -326,7 +326,7 @@ def grade(question: Question, submitted: dict[str, str]) -> dict:
                 "raw": raw,
                 "score": score,
                 "max": part.points,
-                "carried": carried,  # бал за перенесену помилку — позначаємо для статистики
+                "carried": carried,  # бал за перенесену помилку – позначаємо для статистики
             }
         )
 
@@ -474,9 +474,9 @@ def safe_grade(
 
     У воркер передаються лише координати задачі, а не сам об'єкт: Question
     містить замикання в carry і не серіалізується. Заразом це означає, що
-    еталони не подорожують між процесами — вони перераховуються на місці.
+    еталони не подорожують між процесами – вони перераховуються на місці.
 
-    Синтаксичні фільтри в parse_answer ловлять відомі атаки, але sympy — це
+    Синтаксичні фільтри в parse_answer ловлять відомі атаки, але sympy – це
     повноцінна CAS, і припускати, що ви передбачили все, не можна.
     На проді викликати саме цю функцію, а не grade().
     """

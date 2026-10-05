@@ -1,6 +1,6 @@
 """Тест 2 (визначений інтеграл і площі): коректність шаблонів.
 
-Головний запобіжник — test_all_grade_full_on_correct_answers. Незалежну
+Головний запобіжник – test_all_grade_full_on_correct_answers. Незалежну
 математичну перевірку (реконструкція інтеграла з параметрів) винесено в
 test_answers_correct.py::test_integral2_math.
 """
@@ -59,7 +59,7 @@ def test_statements_use_katex_no_literal_newline():
 
 
 def test_all_answers_are_numbers():
-    """Усі відповіді — числа (площі та інтеграли)."""
+    """Усі відповіді – числа (площі та інтеграли)."""
     for key in INTEGRAL2_KEYS:
         q = _build(key, 2)
         for p in q.parts:
@@ -86,7 +86,7 @@ def test_areas_are_positive():
 
 
 def test_find_limit_is_positive_root():
-    """Відповідь оберненої задачі — саме додатний корінь b."""
+    """Відповідь оберненої задачі – саме додатний корінь b."""
     for i in range(15):
         q = _build("def_find_limit", i)
         a, S, b = q.params["a"], q.params["S"], q.parts[0].answer

@@ -77,7 +77,7 @@ def test_live_math_preview_present(client):
 
 
 def test_submit_button_is_wired(client):
-    """Регрес: кнопка «Відповісти» мусить мати обробник кліку — інакше клік по
+    """Регрес: кнопка «Відповісти» мусить мати обробник кліку – інакше клік по
     ній нічого не робить (submit спрацьовував лише по Enter)."""
     html = client.get("/").text
     assert 'id="btn-submit"' in html

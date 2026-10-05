@@ -219,7 +219,7 @@ const state = {
 };
 
 // Відбитки автоматизації браузера (сигнали, НЕ вирок): webdriver ловить
-// незамаскований Selenium/Playwright/Puppeteer; решта — евристики headless.
+// незамаскований Selenium/Playwright/Puppeteer; решта – евристики headless.
 function clientEnv(){
   const nav = navigator;
   let plugins = 0, langs = 0;
@@ -440,13 +440,13 @@ function onFirstInput(){
 function renderExprPreview(el, val){
   val = (val || "").trim();
   // Показуємо прев'ю лише коли ввід «нетривіальний» (корінь, степінь, дріб,
-  // дужки). Для простого числа (напр. 13 чи -2,5) прев'ю зайве — ховаємо.
+  // дужки). Для простого числа (напр. 13 чи -2,5) прев'ю зайве – ховаємо.
   const nontrivial = /sqrt|\^|\/|[()]/i.test(val);
   if (!val || !nontrivial){ el.classList.remove("show"); el.innerHTML = ""; return; }
   el.classList.add("show");
   // Наш синтаксис вводу -> LaTeX. Дужка після sqrt/abs НЕобов'язкова (щоб і
   // проміжний ввід «2sqrt(10» показувався коректно), і працює без зірочки.
-  // Функції — як оператори (tg/ctg через \operatorname, бо в KaTeX немає \tg);
+  // Функції – як оператори (tg/ctg через \operatorname, бо в KaTeX немає \tg);
   // ctg стоїть перед tg в чергуванні, щоб «ctg» не розпалося на «c»+«tg».
   const FN = {
     sin: "\\sin", cos: "\\cos", tan: "\\tan", cot: "\\cot",
@@ -599,7 +599,7 @@ function fmt(x){ return (Math.round((x||0)*100)/100).toString(); }
 let _awayAt = 0;
 let _unfocusAt = 0;
 // Втрата фокуса ВІКНА: учень клікнув у сусіднє вікно (напр. ШІ поруч), а вкладка
-// лишилася ВИДИМОЮ — visibilitychange такого не бачить. Поріг той самий (2 с),
+// лишилася ВИДИМОЮ – visibilitychange такого не бачить. Поріг той самий (2 с),
 // щоб випадковий клік чи системне спливне вікно не карали.
 window.addEventListener("blur", () => {
   if (!state.active || document.hidden) return;  // сховану вкладку веде visibilitychange
@@ -615,7 +615,7 @@ window.addEventListener("focus", async () => {
 document.addEventListener("visibilitychange", async () => {
   if (!state.active) return;
   // Вкладку сховали. Скидаємо лічильник фокуса вікна, бо Alt+Tab викликає
-  // обидві події — інакше один вихід порахувався б двічі.
+  // обидві події – інакше один вихід порахувався б двічі.
   if (document.hidden){ _awayAt = Date.now(); _unfocusAt = 0; sendEvent("blur", {}); return; }
   // Повернувся у вкладку.
   if (!_awayAt) return;
@@ -626,7 +626,7 @@ document.addEventListener("visibilitychange", async () => {
   // відхід (> 2 с) -> питання перевидається з новими числами й повним часом.
   if (away > 2000){ await handleIntegrity("away", {ms: away}); }
 });
-// Копіювання тексту під час активного питання — типовий жест «скопіювати умову
+// Копіювання тексту під час активного питання – типовий жест «скопіювати умову
 // в ШІ». Логуємо як сигнал (не блокуємо й не караємо: умова в кожного своя).
 ["copy", "cut"].forEach((t) => {
   document.addEventListener(t, () => { if (state.active) sendEvent("copy", {}); });
@@ -651,7 +651,7 @@ function init(){
 
   // Екранна клавіатура символів: кнопка перемикає й запам'ятовує стан.
   $("kbd-toggle").addEventListener("click", () => {
-    kbdSetOpen($("kbd-panel").hidden);  // якщо схована — відкриваємо, і навпаки
+    kbdSetOpen($("kbd-panel").hidden);  // якщо схована – відкриваємо, і навпаки
   });
   const panel = $("kbd-panel");
   // mousedown не дає полю втратити фокус і виділення до вставки.

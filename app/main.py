@@ -55,17 +55,17 @@ def _ensure_demo_seed() -> None:
 
 def _maybe_autoload() -> None:
     """Завантажити тести з TESTUVALKA_AUTOLOAD на старті. Помилка YAML не валить
-    застосунок — лише лог; наявні тести лишаються доступні."""
+    застосунок – лише лог; наявні тести лишаються доступні."""
     if not AUTOLOAD:
         return
     path = Path(AUTOLOAD)
     if not path.exists():
-        log.warning("TESTUVALKA_AUTOLOAD=%s — файл не знайдено, пропускаю", AUTOLOAD)
+        log.warning("TESTUVALKA_AUTOLOAD=%s – файл не знайдено, пропускаю", AUTOLOAD)
         return
     try:
         created, updated = load_tests(str(path))
         log.info("Автозавантаження тестів: створено %d, оновлено %d", created, updated)
-    except Exception as exc:  # noqa: BLE001 — старт важливіший за один поганий YAML
+    except Exception as exc:  # noqa: BLE001 – старт важливіший за один поганий YAML
         log.warning("Автозавантаження тестів не вдалося: %s", exc)
 
 

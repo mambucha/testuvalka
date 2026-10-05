@@ -65,7 +65,7 @@
     <div id="err" class="err"></div>
     <p class="muted" style="font-size:.82rem">
       Клікніть на рядок студента, щоб побачити розбір: які питання правильні, а які
-      ні. Прапорці — це сирі сигнали (вставка, перемикання вкладки), не звинувачення.
+      ні. Прапорці – це сирі сигнали (вставка, перемикання вкладки), не звинувачення.
     </p>
   </div>
 
@@ -125,15 +125,15 @@ async function load(){
     const cells = [
       a.group, a.full_name, a.attempt_no, a.status,
       // Бал показуємо лише для завершених спроб: для анульованих сервер шле
-      // null, і «—» не сплутаєш з оцінкою «нуль».
-      a.score == null ? "—" : `${fmt(a.score)} / ${fmt(a.max_score)}`,
-      a.percent == null ? "—" : a.percent + "%",
-      a.finished_at || "—",
+      // null, і «–» не сплутаєш з оцінкою «нуль».
+      a.score == null ? "–" : `${fmt(a.score)} / ${fmt(a.max_score)}`,
+      a.percent == null ? "–" : a.percent + "%",
+      a.finished_at || "–",
       a.paste_count, a.copy_count, a.blur_count,
-      a.min_seconds_per_question == null ? "—" : a.min_seconds_per_question,
-      a.avg_first_input_ms == null ? "—" : a.avg_first_input_ms,
-      a.fast_correct == null ? "—" : a.fast_correct,
-      a.webdriver ? "так" : "—",
+      a.min_seconds_per_question == null ? "–" : a.min_seconds_per_question,
+      a.avg_first_input_ms == null ? "–" : a.avg_first_input_ms,
+      a.fast_correct == null ? "–" : a.fast_correct,
+      a.webdriver ? "так" : "–",
     ];
     for (const c of cells){ const td = document.createElement("td"); td.textContent = c; tr.appendChild(td); }
     const fl = document.createElement("td"); fl.className = "flag";
@@ -166,7 +166,7 @@ async function loadDetail(attemptId){
   box.appendChild(close);
 
   const h = document.createElement("h2");
-  h.textContent = `Розбір: ${d.full_name} (${d.group}) — ${fmt(d.score)} / ${fmt(d.max_score)}`;
+  h.textContent = `Розбір: ${d.full_name} (${d.group}) – ${fmt(d.score)} / ${fmt(d.max_score)}`;
   box.appendChild(h);
 
   const vclass = {"повністю":"v-full", "частково":"v-part", "ні":"v-no"};
@@ -174,8 +174,8 @@ async function loadDetail(attemptId){
     const div = document.createElement("div"); div.className = "q";
     const head = document.createElement("div"); head.className = "qhead";
     const vspan = `<span class="${vclass[qq.verdict]||''}">${qq.verdict}</span>`;
-    head.innerHTML = `Питання ${qq.ordinal+1} — <span class="muted">${qq.question_key}</span> — `
-      + `${fmt(qq.score)} / ${fmt(qq.max_score)} — ${vspan}`;
+    head.innerHTML = `Питання ${qq.ordinal+1} – <span class="muted">${qq.question_key}</span> – `
+      + `${fmt(qq.score)} / ${fmt(qq.max_score)} – ${vspan}`;
     div.appendChild(head);
 
     const t = document.createElement("table"); t.className = "parts";

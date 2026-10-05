@@ -1,4 +1,4 @@
-"""Степенева функція та корінь — набір за підручником Мерзляка (§2–§5).
+"""Степенева функція та корінь – набір за підручником Мерзляка (§2–§5).
 
 Окрім звичних перевірок тут НЕЗАЛЕЖНО перераховується математика кожної задачі
 і закріплено суть кожного типу вправи: порівняння значень має спиратися на
@@ -12,7 +12,7 @@ import sympy as sp
 import engine
 from app.config import SECRET
 
-# Літеральний "\n" замість переносу; \ne, \nu — валідні команди LaTeX.
+# Літеральний "\n" замість переносу; \ne, \nu – валідні команди LaTeX.
 _BAD_NEWLINE = re.compile(r"\\n(?![a-zA-Z])")
 
 PARA2 = ["mz_find_exponent", "mz_compare_power", "mz_minmax_power"]
@@ -76,7 +76,7 @@ def test_figures_only_on_graph_tasks():
 
 
 def test_no_rational_exponent_topic():
-    """§6 (степінь з раціональним показником) — наступна тема, сюди не входить."""
+    """§6 (степінь з раціональним показником) – наступна тема, сюди не входить."""
     for key in KEYS:
         for i in range(8):
             s = _build(key, i).statement.replace(" ", "")
@@ -115,7 +115,7 @@ def test_compare_power_uses_monotonicity_and_parity():
         assert f(a["b2"]) == max(f(p["s"]), f(-p["t"]))
         assert f(-p["p"]) != f(-p["q"]), "значення не мають збігатися"
         assert f(p["s"]) != f(-p["t"])
-        assert n >= 19, "показник має бути великим — інакше виручить калькулятор"
+        assert n >= 19, "показник має бути великим – інакше виручить калькулятор"
 
 
 def test_minmax_power_math():
@@ -158,8 +158,8 @@ def test_root_sense_counts_only_valid_records():
     for i in range(40):
         q = _build("mz_root_sense", i)
         a = _a(q)
-        # серед чотирьох записів рівно один — парний корінь з від'ємного
-        assert a["cnt"] == 3, "три записи мають зміст, один — ні"
+        # серед чотирьох записів рівно один – парний корінь з від'ємного
+        assert a["cnt"] == 3, "три записи мають зміст, один – ні"
         assert a["val"] == -q.params["c"]
         assert a["val"] ** 3 == -(q.params["c"] ** 3)
 
@@ -186,7 +186,7 @@ def test_factor_out_math_and_degrees_vary():
 
 
 def test_bring_under_math():
-    """Внесення під корінь — дія, обернена до винесення."""
+    """Внесення під корінь – дія, обернена до винесення."""
     degrees = set()
     for i in range(40):
         q = _build("mz_bring_under", i)
@@ -194,7 +194,7 @@ def test_bring_under_math():
         degrees.add(p["n"])
         assert a["pw"] == p["c"] ** p["n"]
         assert a["inner"] == p["c"] ** p["n"] * p["r"]
-        # c * ⁿ√r  і  ⁿ√(cⁿ·r) — те саме число
+        # c * ⁿ√r  і  ⁿ√(cⁿ·r) – те саме число
         assert sp.simplify(p["c"] * sp.root(p["r"], p["n"])
                            - sp.root(a["inner"], p["n"])) == 0
     assert degrees == {2, 3}

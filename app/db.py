@@ -35,7 +35,7 @@ def get_db():
 
 
 def init_db() -> None:
-    from app import models  # noqa: F401  — реєстрація моделей у метаданих
+    from app import models  # noqa: F401  – реєстрація моделей у метаданих
 
     Base.metadata.create_all(engine)
     _migrate()

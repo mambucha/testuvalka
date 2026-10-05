@@ -61,7 +61,7 @@ def test_nonfigure_have_no_svg():
 
 
 def test_eccentricity_accepts_fraction_forms():
-    """Ексцентриситет — дріб; приймаються дробова та нескорочена форми."""
+    """Ексцентриситет – дріб; приймаються дробова та нескорочена форми."""
     import sympy as sp
 
     q = engine.build("ellipse_eccentricity", SECRET, "s|1", "t", 1, 0)

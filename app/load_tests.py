@@ -2,9 +2,9 @@
 
     python -m app.load_tests tests.yaml
 
-Шаблони задач — це код (engine.py, app/bank/*). Тут описуються лише ТЕСТИ, що
+Шаблони задач – це код (engine.py, app/bank/*). Тут описуються лише ТЕСТИ, що
 посилаються на ключі шаблонів. Повторний запуск оновлює наявні тести за ключем
-(upsert), нові — створює. Спроби студентів не чіпаються.
+(upsert), нові – створює. Спроби студентів не чіпаються.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ import yaml
 from sqlalchemy import select
 
 import engine
-from app import bank  # noqa: F401  — зареєструвати банкові шаблони перед перевіркою
+from app import bank  # noqa: F401  – зареєструвати банкові шаблони перед перевіркою
 from app import models
 from app.db import SessionLocal, init_db
 
@@ -63,7 +63,7 @@ def load_tests(path: str, db=None) -> tuple[int, int]:
             if qcount > len(bank_keys):
                 raise LoadError(
                     f"тест '{key}': question_count={qcount} більший за банк "
-                    f"({len(bank_keys)}). Ключі не повторюються в межах спроби — "
+                    f"({len(bank_keys)}). Ключі не повторюються в межах спроби – "
                     "додайте шаблонів або зменшіть кількість пунктів."
                 )
             ppq = t.get("points_per_question")

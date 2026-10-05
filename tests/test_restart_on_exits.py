@@ -2,7 +2,7 @@
 ПОВНІСТЮ новий варіант (налаштування restart_after_violations, per-test).
 
 Виходом вважається і перемикання вкладки ("away"), і втрата фокуса вікна
-("unfocus" — два вікна поруч). Вставка сюди не рахується.
+("unfocus" – два вікна поруч). Вставка сюди не рахується.
 """
 
 from sqlalchemy import select
@@ -103,7 +103,7 @@ def test_after_restart_student_gets_fresh_variant(client):
 def test_system_restart_never_consumes_an_attempt(client):
     """Системне анулювання НЕ з'їдає спробу: через перебої зі світлом/зв'язком
     вкладка ховається не з вини учня, і він не має через це лишатися без спроб.
-    (Спершу тут було навпаки — і це заблокувало реальних студентів.)"""
+    (Спершу тут було навпаки – і це заблокувало реальних студентів.)"""
     _make_test(limit=2, max_attempts=2)
     for _ in range(3):                      # більше разів, ніж ліміт спроб
         s = StudentClient(client)
@@ -116,7 +116,7 @@ def test_system_restart_never_consumes_an_attempt(client):
 
 
 def test_tests_without_setting_are_unaffected(client):
-    """Демо-тест не має порога: скільки б не виходив — лише перевидання."""
+    """Демо-тест не має порога: скільки б не виходив – лише перевидання."""
     s = StudentClient(client)
     s.start()
     r = None
@@ -129,7 +129,7 @@ def test_tests_without_setting_are_unaffected(client):
 
 
 def test_paste_does_not_count_toward_restart(client):
-    """Вставка — інше порушення: перевидає питання, але до порога не рахується."""
+    """Вставка – інше порушення: перевидає питання, але до порога не рахується."""
     _make_test(limit=2)
     s = StudentClient(client)
     s.start(RK)

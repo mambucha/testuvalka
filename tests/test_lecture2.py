@@ -35,7 +35,7 @@ def test_lecture2_statements_use_katex_delimiters():
 
 
 def test_line_from_graph_has_valid_svg():
-    """Завдання з графіком мусить нести придатний inline-SVG, а public() —
+    """Завдання з графіком мусить нести придатний inline-SVG, а public() –
     віддавати його в браузер."""
     q = engine.build("line_from_graph", SECRET, "s|1", "t", 1, 0)
     assert q.svg is not None
@@ -48,7 +48,7 @@ def test_line_from_graph_has_valid_svg():
 
 
 def test_non_figure_templates_have_no_svg():
-    """Решта завдань — без рисунка (svg None), тож блок рисунка не показується."""
+    """Решта завдань – без рисунка (svg None), тож блок рисунка не показується."""
     for key in LECTURE2_KEYS:
         if key == "line_from_graph":
             continue

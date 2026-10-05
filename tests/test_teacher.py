@@ -1,6 +1,6 @@
-"""Шар D: кабінет викладача — журнал оцінок (CSV) і сигнали аномалій.
+"""Шар D: кабінет викладача – журнал оцінок (CSV) і сигнали аномалій.
 
-Доступ лише за токеном викладача. Аномалії — сирі сигнали (вставки, перемикання
+Доступ лише за токеном викладача. Аномалії – сирі сигнали (вставки, перемикання
 вкладки), не звинувачення; пороги автоворідингу тут навмисно не автоматизовані.
 """
 
@@ -78,19 +78,19 @@ def test_disabled_when_no_token(client, monkeypatch):
 
 def test_results_xlsx_download(client):
     _finish_attempt_with_paste(client)
-    # без токена — заборонено
+    # без токена – заборонено
     assert client.get("/api/teacher/results_xlsx?test_key=demo").status_code == 403
-    # з токеном — справжній .xlsx
+    # з токеном – справжній .xlsx
     r = client.get("/api/teacher/results_xlsx?test_key=demo", headers=H)
     assert r.status_code == 200
     assert "spreadsheetml" in r.headers["content-type"]
-    assert r.content[:2] == b"PK"  # xlsx — це zip-архів
+    assert r.content[:2] == b"PK"  # xlsx – це zip-архів
     assert len(r.content) > 200
 
 
 def test_attempt_detail_breakdown(client):
     s = _finish_attempt_with_paste(client)  # усі відповіді правильні
-    # без токена — заборонено
+    # без токена – заборонено
     assert client.get(f"/api/teacher/attempt/{s.attempt_id}/detail").status_code == 403
     r = client.get(f"/api/teacher/attempt/{s.attempt_id}/detail", headers=H)
     assert r.status_code == 200
@@ -132,4 +132,4 @@ def test_attempt_detail_survives_removed_template(client):
     d = r.json()
     q0 = next(q for q in d["questions"] if q["question_key"] == "gone_template")
     assert q0["parts"]  # показує збережені відповіді
-    assert q0["parts"][0]["expected"] == "—"  # еталона немає — і це ок
+    assert q0["parts"][0]["expected"] == "–"  # еталона немає – і це ок

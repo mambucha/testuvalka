@@ -73,9 +73,9 @@ def test_theme1_statements_no_em_dash():
     """У жодній умові немає довгих тире (стиль без em dash)."""
     for key in THEME1_KEYS:
         q = engine.build(key, SECRET, "s|s", "t", 1, 0)
-        assert "—" not in q.statement, key
+        assert "–" not in q.statement, key
         for p in q.parts:
-            assert "—" not in p.label, (key, p.key)
+            assert "–" not in p.label, (key, p.key)
 
 
 def test_theme1_figure_questions_have_svg():

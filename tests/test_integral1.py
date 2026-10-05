@@ -1,6 +1,6 @@
 """Тест 1 (первісна та невизначений інтеграл): коректність шаблонів.
 
-Головний запобіжник — test_all_grade_full_on_correct_answers: еталонну відповідь
+Головний запобіжник – test_all_grade_full_on_correct_answers: еталонну відповідь
 (вираз первісної) подають назад у grade і вимагають повний бал. Саме це ловить
 хибний мінус від символьного порівняння (sp.simplify) на складніших виразах
 (корені, tg, exp).
@@ -68,7 +68,7 @@ def test_no_figures():
 
 
 def test_kinds_as_designed():
-    """Числові питання — kind=number; решта — вираз (первісна/функція)."""
+    """Числові питання – kind=number; решта – вираз (первісна/функція)."""
     for key in INTEGRAL1_KEYS:
         q = _build(key, 2)
         for p in q.parts:
@@ -110,7 +110,7 @@ def test_linear_power_accepts_compact_form():
 
 
 def test_ukrainian_tg_ctg_input_accepted():
-    """Укр. шкільне позначення tg/ctg (аліаси tan/cot у рушії) — повний бал."""
+    """Укр. шкільне позначення tg/ctg (аліаси tan/cot у рушії) – повний бал."""
     for i in range(15):
         q = _build("antideriv_trig_table", i)
         ans = str(q.parts[0].answer).replace("tan", "tg").replace("cot", "ctg")

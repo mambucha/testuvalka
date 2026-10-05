@@ -1,4 +1,4 @@
-"""Лекція 6 (вища математика): похідна — таблиця та ТЕХНІКИ диференціювання.
+"""Лекція 6 (вища математика): похідна – таблиця та ТЕХНІКИ диференціювання.
 
 Обсяг за домовленістю з викладачем:
   * таблиця похідних: степенева, корінь, 1/x, sin, cos, tg, eˣ, aˣ, ln x;
@@ -7,10 +7,10 @@
   * друга похідна.
 
 ЗАСТОСУВАНЬ похідної немає (їх ще не вивчали), і значення похідної в точці
-НЕ шукаємо — увесь тест про саму техніку диференціювання.
+НЕ шукаємо – увесь тест про саму техніку диференціювання.
 
 Чому це стійке до списування:
-  * відповідь — ВИРАЗ, а не число: одним числом не поділишся;
+  * відповідь – ВИРАЗ, а не число: одним числом не поділишся;
   * коефіцієнти в кожного студента свої, тож і похідна своя;
   * задачі багатокрокові (u', v', потім y'), тобто передати треба весь ланцюг.
 
@@ -28,7 +28,7 @@ from engine import Part, Question, template
 
 _x = sp.Symbol("x")
 
-# Підказка про ввід — щоб не гадали, як писати експоненту й логарифм.
+# Підказка про ввід – щоб не гадали, як писати експоненту й логарифм.
 _INPUT_HINT = "(Позначення для введення: e^x або exp(x), ln(x), sin(x), cos(x), tg(x).)"
 
 
@@ -63,7 +63,7 @@ def _d(expr):
 
 @template("dv_power_root")
 def _power_root(rng: random.Random) -> Question:
-    r"""Таблиця: степенева, корінь, $1/x$ — сума з трьох доданків."""
+    r"""Таблиця: степенева, корінь, $1/x$ – сума з трьох доданків."""
     a, n = rng.choice([2, 3, 4]), rng.choice([3, 4, 5])
     b = rng.choice([2, 4, 6])
     c = rng.choice([3, 5, 7])
@@ -148,7 +148,7 @@ def _exp_log(rng: random.Random) -> Question:
 
 @template("dv_product")
 def _product(rng: random.Random) -> Question:
-    r"""Правило добутку: $(uv)' = u'v + uv'$ — три кроки."""
+    r"""Правило добутку: $(uv)' = u'v + uv'$ – три кроки."""
     if rng.random() < 0.5:
         a, b = rng.choice([2, 3]), rng.choice([-3, -1, 1, 3])
         u = a * _x**2 + b
@@ -216,7 +216,7 @@ def _quotient(rng: random.Random) -> Question:
 
 @template("dv_chain_power")
 def _chain_power(rng: random.Random) -> Question:
-    r"""Ланцюгове правило, зовнішня — степенева: $\left(u^n\right)' = n u^{n-1} u'$."""
+    r"""Ланцюгове правило, зовнішня – степенева: $\left(u^n\right)' = n u^{n-1} u'$."""
     a = rng.choice([2, 3, 4])
     b = rng.choice([-3, -1, 1, 3])
     n = rng.choice([3, 4, 5])
@@ -278,7 +278,7 @@ def _product_chain(rng: random.Random) -> Question:
 
 @template("dv_chain_exp")
 def _chain_exp(rng: random.Random) -> Question:
-    r"""Ланцюгове правило, зовнішня — показникова: $\left(e^u\right)' = e^u u'$."""
+    r"""Ланцюгове правило, зовнішня – показникова: $\left(e^u\right)' = e^u u'$."""
     a = rng.choice([2, 3, 4])
     b = rng.choice([-3, -1, 1, 3])
     inner = a * _x**2 + b
@@ -308,7 +308,7 @@ def _chain_exp(rng: random.Random) -> Question:
 
 @template("dv_chain_sqrt")
 def _chain_sqrt(rng: random.Random) -> Question:
-    r"""Ланцюгове правило, зовнішня — корінь:
+    r"""Ланцюгове правило, зовнішня – корінь:
     $\left(\sqrt{u}\right)' = \dfrac{u'}{2\sqrt{u}}$."""
     a = rng.choice([3, 5, 7])
     b = rng.choice([1, 2, 4])
@@ -339,7 +339,7 @@ def _chain_sqrt(rng: random.Random) -> Question:
 
 @template("dv_chain_ln")
 def _chain_ln(rng: random.Random) -> Question:
-    r"""Ланцюгове правило, зовнішня — логарифм:
+    r"""Ланцюгове правило, зовнішня – логарифм:
     $\left(\ln u\right)' = \dfrac{u'}{u}$."""
     a = rng.choice([2, 3, 5])
     b = rng.choice([-4, -2, 1, 3])
@@ -385,7 +385,7 @@ def _second_poly(rng: random.Random) -> Question:
         key="dv_second_poly",
         statement=(
             rf"Дано функцію $y = {ftex}$."
-            + "\nЗнайдіть першу і другу похідні (друга — це похідна від першої)."
+            + "\nЗнайдіть першу і другу похідні (друга – це похідна від першої)."
         ),
         parts=[
             Part("d1", "$y'$ =", d1, kind="expr", points=1),

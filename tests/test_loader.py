@@ -2,7 +2,7 @@
 
 Цей тест доводить наскрізний сценарій «підвантажити тест»: описали тест у YAML,
 завантажили, студент його пройшов, і банковий шаблон коректно оцінено в
-підпроцесі (реєстрація банку в дочірньому процесі — див. app/grading.py).
+підпроцесі (реєстрація банку в дочірньому процесі – див. app/grading.py).
 """
 
 import textwrap
@@ -59,7 +59,7 @@ def test_load_is_idempotent_upsert(client, tmp_path):
         """,
     )
     assert load_tests(path) == (1, 0)
-    # Повторно — оновлення, не дублікат.
+    # Повторно – оновлення, не дублікат.
     assert load_tests(path) == (0, 1)
 
 
@@ -109,4 +109,4 @@ def test_autoload_loads_yaml_on_startup(client, tmp_path, monkeypatch):
 
 def test_autoload_missing_or_bad_file_does_not_crash(monkeypatch):
     monkeypatch.setattr(main, "AUTOLOAD", "definitely-missing-file.yaml")
-    main._maybe_autoload()  # не кидає — лише лог
+    main._maybe_autoload()  # не кидає – лише лог
