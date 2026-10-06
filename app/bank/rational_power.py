@@ -253,7 +253,7 @@ def _properties(rng: random.Random) -> Question:
     # Знаменник 2 неможливий: половина + половина - половина завжди половина,
     # тобто цілого показника з трьох дробових не скласти.
     den = rng.choice([3, 4, 5])
-    k1 = rng.choice([1, 2, 3])
+    k1 = rng.choice([1, 2, 3, 4])
     # Лишки мають бути такими, щоб і третій показник не скоротився до цілого.
     pairs = [(ra, rb) for ra in range(1, den) for rb in range(1, den)
              if (ra + rb) % den]
@@ -262,37 +262,40 @@ def _properties(rng: random.Random) -> Question:
     qn = rb + den * rng.randrange(1, 4)
     rn = pn + qn - k1 * den          # завжди додатний: pn + qn > 3*den >= k1*den
     p, q, rr = Fraction(pn, den), Fraction(qn, den), Fraction(rn, den)
-    u, v, k2 = rng.choice([
+    # k2 != k1, інакше обидва значення збігаються і одне вгадане число
+    # приносить одразу два бали з трьох.
+    u, v, k2 = rng.choice([e for e in [
         (Fraction(3, 2), Fraction(4, 3), 2), (Fraction(2, 3), Fraction(3, 2), 1),
         (Fraction(5, 2), Fraction(4, 5), 2), (Fraction(3, 4), Fraction(8, 3), 2),
         (Fraction(4, 3), Fraction(3, 2), 2), (Fraction(5, 3), Fraction(6, 5), 2),
         (Fraction(2, 5), Fraction(5, 2), 1), (Fraction(5, 4), Fraction(8, 5), 2),
         (Fraction(7, 3), Fraction(3, 7), 1), (Fraction(3, 5), Fraction(5, 3), 1),
-    ])
+        (Fraction(5, 2), Fraction(6, 5), 3), (Fraction(9, 2), Fraction(2, 3), 3),
+        (Fraction(4, 3), Fraction(9, 4), 3), (Fraction(5, 3), Fraction(9, 5), 3),
+        (Fraction(7, 2), Fraction(6, 7), 3),
+    ] if e[2] != k1])
     return Question(
         key="rp_properties",
         statement=(
-            "Скористайтеся властивостями степеня."
-            + "\n" + rf"1) Чому дорівнює показник $k$, якщо подати "
-            rf"${b}^{{{_frac_tex(p)}}}\cdot {b}^{{{_frac_tex(q)}}} : "
-            rf"{b}^{{{_frac_tex(rr)}}}$ у вигляді ${b}^{{k}}$?"
-            + "\n" + rf"2) Обчисліть значення виразу "
-            rf"$\left({b}^{{{_frac_tex(u)}}}\right)^{{{_frac_tex(v)}}}$."
-            + "\n3) Обчисліть значення ДОБУТКУ цих двох виразів."
+            "Скористайтеся властивостями степеня й обчисліть значення виразів."
+            + "\n" + rf"1) ${b}^{{{_frac_tex(p)}}}\cdot {b}^{{{_frac_tex(q)}}} : "
+            rf"{b}^{{{_frac_tex(rr)}}}$"
+            + "\n" + rf"2) $\left({b}^{{{_frac_tex(u)}}}\right)^{{{_frac_tex(v)}}}$"
+            + "\n3) Чому дорівнює добуток цих двох значень?"
             + "\n" + _HINT
         ),
         parts=[
-            # Другий пункт просить саме ЗНАЧЕННЯ, а не показник: два маленькі
-            # цілі показники поспіль вгадувалися б однією одиницею.
-            Part("k1", "1) показник першого =", sp.Integer(k1), points=1),
-            Part("val2", "2) значення другого =", sp.Integer(b) ** k2, points=1),
-            Part("val", "3) значення добутку =", sp.Integer(b) ** (k1 + k2),
-                 points=1,
-                 carry=lambda prev, _b=b: (
-                     None if _safe_exp(prev.get("k1")) is None
+            # Усі три пункти просять ЗНАЧЕННЯ. Коли перший пункт питав показник,
+            # а другий – значення, у третьому легко було перемножити показник на
+            # значення (3 * 25 замість 125 * 25) – і це була вина умови.
+            Part("val1", "1) =", sp.Integer(b) ** k1, points=1),
+            Part("val2", "2) =", sp.Integer(b) ** k2, points=1),
+            Part("val", "3) добуток =", sp.Integer(b) ** (k1 + k2), points=1,
+                 carry=lambda prev: (
+                     None if _num(prev.get("val1")) is None
                      or _num(prev.get("val2")) is None
-                     else sp.Integer(_b) ** prev["k1"] * prev["val2"]),
-                 carry_from=("k1", "val2")),
+                     else prev["val1"] * prev["val2"]),
+                 carry_from=("val1", "val2")),
         ],
         seconds=130,
         # показники зберігаємо рядками, щоб тест міг перевірити їх незалежно

@@ -220,17 +220,32 @@ def test_properties_math():
         # усі показники в умові мають бути дробовими, інакше тема ні до чого
         for fr in (pp, qq, rr, u, v):
             assert fr.denominator > 1, (i, "показник скоротився до цілого", fr)
-        assert pp + qq - rr == a["k1"], (i, p)
+        assert pp + qq - rr == p["k1"], (i, p)
         assert u * v == p["k2"], (i, p)
+        # усі три пункти – ЗНАЧЕННЯ: мішанина «показник + значення» колись
+        # підштовхувала перемножити 3 на 25 замість 125 на 25
+        assert a["val1"] == sp.Integer(b) ** p["k1"], (i, p)
         assert a["val2"] == sp.Integer(b) ** p["k2"], (i, p)
-        assert a["val"] == a["val2"] * sp.Integer(b) ** a["k1"], (i, p)
+        assert a["val"] == a["val1"] * a["val2"], (i, p)
         # власне перевірка властивостей, зібрана наново
         assert (sp.Integer(b) ** _R(pp.numerator, pp.denominator)
                 * sp.Integer(b) ** _R(qq.numerator, qq.denominator)
                 / sp.Integer(b) ** _R(rr.numerator, rr.denominator)
-                == sp.Integer(b) ** a["k1"]), (i, p)
+                == a["val1"]), (i, p)
         assert ((sp.Integer(b) ** _R(u.numerator, u.denominator))
                 ** _R(v.numerator, v.denominator) == a["val2"]), (i, p)
+
+
+def test_properties_asks_only_for_values():
+    """Три пункти – три ЗНАЧЕННЯ. Якщо один питає показник, а другий значення,
+    то в третьому природно перемножити одне на одне й дістати нісенітницю."""
+    for i in range(8):
+        q = _build("rp_properties", i)
+        s = q.statement.lower()
+        assert "показник" not in s, (i, "умова знову змішує показник зі значенням")
+        p = q.params
+        mixed = sp.Integer(p["k1"]) * sp.Integer(p["b"]) ** p["k2"]
+        assert _a(q)["val"] != mixed or p["k1"] == p["b"] ** p["k1"], (i, p)
 
 
 def test_same_base_math():
