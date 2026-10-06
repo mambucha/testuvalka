@@ -64,6 +64,12 @@ class Part:
     tol: float = 1e-6
     points: float = 1.0
 
+    # Вважати x, y, t додатними під час звіряння. Потрібно там, де вираз і так
+    # означений лише для додатних значень (степінь з раціональним показником).
+    # Без цього sympy не ототожнює sqrt(x*y) і sqrt(x)*sqrt(y) – і має рацію,
+    # бо для від'ємних це різні вирази.
+    positive: bool = False
+
     # Перенесення помилки: перерахувати еталон із того, що студент ввів раніше.
     # Сигнатура: (prev: dict[str, sympy-вираз]) -> еталон | None
     # None означає "не вдалося перерахувати" – тоді звіряємо з початковим еталоном.
@@ -178,9 +184,77 @@ _FORBIDDEN = ("__", "lambda", "import", "exec", "eval", "open", "globals", "geta
 _FACT_LIMIT = 50
 _FACT_MAX_COUNT = 6
 
+# Показник степеня. Тема «степінь з раціональним показником» вимагає вводу
+# виду x^(2/3), тож дробові показники треба і дозволити, і обмежити: старий
+# шаблон бачив лише цілі числа, через що 2^(300/1) проходив повз охорону.
+_POW_MAX_COUNT = 8
+_EXP_LIMIT = 12
+_RATIONAL_EXP = _re.compile(r"^\s*([+-]?\d+)\s*(?:/\s*(\d+))?\s*$")
+
 
 class BadInput(ValueError):
     pass
+
+
+def _powers(powered: str) -> list[tuple[str, int]]:
+    """Для кожного `**`: текст його показника і позиція одразу після показника.
+
+    Для `x**12` це («12», після двійки), для `x**(2/3)` це («2/3», після дужки).
+    Дужки рахуємо балансом, тож вкладені `(` не збивають межу показника. Це
+    потрібно, щоб побачити вежу `9**(9**9)`: регулярка її не ловила, бо після
+    `**` там стоїть дужка, а не атом.
+    """
+    out: list[tuple[str, int]] = []
+    i = 0
+    while (j := powered.find("**", i)) >= 0:
+        k = j + 2
+        while k < len(powered) and powered[k].isspace():
+            k += 1
+        if k < len(powered) and powered[k] == "(":
+            depth, m = 0, k
+            while m < len(powered):
+                if powered[m] == "(":
+                    depth += 1
+                elif powered[m] == ")":
+                    depth -= 1
+                    if depth == 0:
+                        break
+                m += 1
+            out.append((powered[k + 1:m], m + 1))
+        else:
+            m = k
+            if m < len(powered) and powered[m] in "+-":
+                m += 1
+            while m < len(powered) and (powered[m].isdigit() or powered[m] == "."):
+                m += 1
+            out.append((powered[k:m], m))
+        i = j + 2
+    return out
+
+
+def _check_powers(powered: str) -> None:
+    """Степеневі вежі й завеликі показники – синтаксично, ДО parse_expr.
+
+    sympy рахує 9**387420489 просто під час розбору, тобто до будь-якої нашої
+    перевірки й до таймауту воркера.
+    """
+    if powered.count("**") > _POW_MAX_COUNT:
+        raise BadInput("надто складний вираз")
+    for exp, end in _powers(powered):
+        if "**" in exp:
+            raise BadInput("степінь у показнику степеня не допускається")
+        if "!" in exp:
+            raise BadInput("факторіал у показнику степеня не допускається")
+        if powered[end:].lstrip().startswith("**"):
+            raise BadInput("степенева вежа не допускається")
+        m = _RATIONAL_EXP.match(exp)
+        if not m:
+            continue                      # показник-вираз: числом не вибухне
+        num, den = int(m.group(1)), int(m.group(2) or 1)
+        if den == 0:
+            raise BadInput("нуль у знаменнику показника")
+        if abs(num) > _EXP_LIMIT * den:
+            raise BadInput(f"надто великий показник степеня (не більше {_EXP_LIMIT})")
 
 
 def _split_numbers(s: str) -> list[str]:
@@ -215,16 +289,7 @@ def parse_answer(raw: str, kind: str = "number"):
     # Степенева вежа виду 9**9**9 вішає sympy НА ЕТАПІ ПАРСИНГУ, тобто
     # до будь-якої нашої перевірки. Ріжемо синтаксично, ще до parse_expr.
     powered = s.replace("^", "**")
-    if powered.count("**") > 4:
-        raise BadInput("надто складний вираз")
-    # 9**9**9 – права асоціативність дає 9**387420489 і вішає sympy.
-    # Шукаємо два ** підряд через один атом: x**2+y**2 сюди не потрапляє,
-    # бо між ними стоїть знак операції.
-    if _re.search(r"\*\*\s*[A-Za-z0-9.]+\s*\*\*", powered):
-        raise BadInput("надто складний вираз")
-    for exponent in _re.findall(r"\*\*\s*(\d+)", powered):
-        if int(exponent) > 12:
-            raise BadInput("надто великий показник степеня")
+    _check_powers(powered)
     # Факторіал – так само синтаксично, ДО parse_expr (див. _FACT_LIMIT вище).
     if powered.count("!") > _FACT_MAX_COUNT:
         raise BadInput("надто багато факторіалів")
@@ -280,6 +345,24 @@ def equal(got, expected, tol: float = 1e-6) -> bool:
 # --------------------------------------------------------------------------
 
 
+_XP, _YP, _TP = sp.symbols("x_pos y_pos t_pos", positive=True)
+_POSITIVE_SUBS = {_X: _XP, _Y: _YP, _T: _TP}
+
+
+def as_positive(expr):
+    """Той самий вираз, але зі змінними, оголошеними додатними."""
+    try:
+        return sp.sympify(expr).subs(_POSITIVE_SUBS)
+    except Exception:  # noqa: BLE001
+        return expr
+
+
+def _same(part: Part, got, expected) -> bool:
+    if part.positive:
+        got, expected = as_positive(got), as_positive(expected)
+    return equal(got, expected, part.tol)
+
+
 def grade(question: Question, submitted: dict[str, str]) -> dict:
     """submitted: {part_key: сирий рядок}. Повертає бали і розбір по частинах.
 
@@ -297,14 +380,14 @@ def grade(question: Question, submitted: dict[str, str]) -> dict:
 
         if part.carry and all(k in parsed for k in part.carry_from):
             alt = part.carry(parsed)
-            if alt is not None and not equal(alt, part.answer, part.tol):
+            if alt is not None and not _same(part, alt, part.answer):
                 expected = alt  # студент помилився раніше – звіряємо з його ж логікою
                 carried = True
 
         try:
             value = parse_answer(raw, part.kind)
             parsed[part.key] = value
-            ok = equal(value, expected, part.tol)
+            ok = _same(part, value, expected)
         except BadInput as exc:
             value, ok = None, False
             detail.append(

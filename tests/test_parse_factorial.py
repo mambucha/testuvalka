@@ -99,3 +99,49 @@ def test_old_guards_still_work():
     for raw in ("9**9**9", "2**99", "1234567890123"):
         with pytest.raises(engine.BadInput):
             _p(raw)
+
+
+# --- показник степеня ----------------------------------------------------
+#
+# Тема «степінь з раціональним показником» вимагає вводу виду x^(2/3). Коли
+# дробові показники дозволили, стара охорона (вона дивилася лише на цілі числа
+# після `**`) перестала покривати два випадки, і обидва рахувалися sympy ще
+# під час розбору, тобто до таймауту воркера.
+
+@pytest.mark.parametrize("raw", [
+    "x^(1/3)", "x^(-1/2)", "x^(2/3)+y^(1/2)", "27^(1/3)", "x^12", "2^(12/1)",
+    "x^(25/3)", "2^x", "x^(0.5)",
+    "x^(2/3)+2*x^(1/3)*y^(1/3)+y^(2/3)",          # чотири степені
+    "x^(1/3)*y^(1/3)*x^(1/6)*y^(1/6)*x^(1/2)",    # п'ять: раніше не влазило
+])
+def test_rational_exponents_accepted(raw):
+    assert engine.parse_answer(raw, "expr") is not None
+
+
+@pytest.mark.parametrize("raw,why", [
+    ("9**(9**9)", "вежа за дужками: 9**387420489"),
+    ("9**(9)**9", "те саме, лише дужки навколо основи показника"),
+    ("2**(300/1)", "показник у вигляді дробу обходив перевірку цілих"),
+    ("2**(999999999/1)", "те саме, але з 90-мільйонним числом"),
+    ("x**13", "звичайний завеликий показник"),
+    ("2**(25/2)", "дробовий показник більший за межу"),
+    ("x**(1/0)", "нуль у знаменнику показника"),
+])
+def test_dangerous_exponents_rejected(raw, why):
+    with pytest.raises(engine.BadInput):
+        engine.parse_answer(raw, "expr")
+
+
+def test_exponent_rejection_is_instant():
+    """Головне: відкинути ДО обчислення, інакше охорона не захищає пам'ять."""
+    for raw in ("9**(9**9)", "2**(999999999/1)", "9**(9)**9"):
+        start = time.perf_counter()
+        with pytest.raises(engine.BadInput):
+            engine.parse_answer(raw, "expr")
+        assert time.perf_counter() - start < 0.05, raw
+
+
+def test_power_count_limit():
+    assert engine.parse_answer("*".join(f"x^{i}" for i in range(1, 9)), "expr")
+    with pytest.raises(engine.BadInput):
+        engine.parse_answer("*".join(f"x^{i % 9}" for i in range(1, 11)), "expr")

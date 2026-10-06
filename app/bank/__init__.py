@@ -25,3 +25,4 @@ from app.bank import theme2_advanced  # noqa: F401
 from app.bank import theme2_merzljak  # noqa: F401
 from app.bank import lecture6_derivative  # noqa: F401
 from app.bank import combinatorics  # noqa: F401
+from app.bank import rational_power  # noqa: F401
