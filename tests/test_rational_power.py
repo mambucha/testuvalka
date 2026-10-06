@@ -41,7 +41,7 @@ _R = sp.Rational
 
 
 def _build(key, i):
-    return engine.build(key, SECRET, f"учень|{i}", "rational_power", 1, 0)
+    return engine.build(key, SECRET, f"учень|{i}", "theme3", 1, 0)
 
 
 def _a(q):
@@ -65,7 +65,7 @@ def test_has_12_types_covering_the_paragraph():
 
 def test_yaml_bank_matches_this_module():
     data = yaml.safe_load(pathlib.Path("tests.yaml").read_text(encoding="utf-8"))
-    entry = next(t for t in data if t["key"] == "rational_power")
+    entry = next(t for t in data if t["key"] == "theme3")
     assert entry["bank"] == KEYS
     assert entry["question_count"] == 12
     assert entry["points_per_question"] == 1
