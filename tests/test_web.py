@@ -36,6 +36,25 @@ def test_integrity_markers_present(client):
     assert "заміниться на нове з іншими числами" in html
 
 
+def test_in_page_activity_cancels_the_unfocus_signal(client):
+    """Дія на сторінці під час window.blur – алібі, а не вихід із тесту.
+
+    На телефонах системна клавіатура, відкриваючись і закриваючись, сама
+    здіймає window.blur/focus. Учень при цьому нікуди не виходив, тож питання
+    перевидавати не можна – інакше умова змінюється просто від того, що він
+    скористався екранною клавіатурою.
+    """
+    html = client.get("/").text
+    assert "_lastInPage" in html
+    assert '["pointerdown", "touchstart", "keydown", "input"].forEach' in html
+    # перевидаємо лише коли на сторінці нічого не відбувалося
+    assert "if (_lastInPage > startedAt)" in html
+    assert 'sendEvent("winblur_ignored"' in html
+    # сам сигнал виходу лишається на місці
+    assert 'handleIntegrity("unfocus"' in html
+    assert 'handleIntegrity("away"' in html
+
+
 def test_agree_checkbox_gates_start(client):
     """Кнопка старту заблокована, доки не позначено згоду; є чекбокс і обробник,
     що керує станом кнопки. Текст про академічну доброчесність."""
@@ -60,6 +79,12 @@ def test_symbol_keyboard_present(client):
                 'data-ins="e^()"', 'data-ins="ln()"', 'data-ins="pi"',
                 'data-ins="abs()"', 'data-ins="!"'):
         assert ins in html, ins
+    # На дотик фокус знімає pointerdown, а не mousedown. Поки тут був лише
+    # mousedown, на телефоні поле втрачало фокус, системна клавіатура
+    # закривалася й тягла за собою window.blur -> питання перевидавалося
+    # посеред набору. Студенти це й описували як «клавіатура міняє умову».
+    assert 'panel.addEventListener(t, (e) => {' in html
+    assert '["pointerdown", "mousedown"].forEach' in html
     assert "function kbdInsert" in html
     assert "function kbdClear" in html
     # опційна: перемикач зі станом, що запам'ятовується

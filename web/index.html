@@ -598,6 +598,15 @@ function fmt(x){ return (Math.round((x||0)*100)/100).toString(); }
 // --- телеметрія фокуса вкладки ---
 let _awayAt = 0;
 let _unfocusAt = 0;
+// Остання взаємодія ВСЕРЕДИНІ сторінки. Потрібна як алібі: на телефонах
+// системна клавіатура, відкриваючись і закриваючись, сама собою здіймає
+// window.blur/focus. Учень при цьому нікуди не виходив – він якраз тикає
+// нашу екранну клавіатуру. Якщо між blur і focus була дія на сторінці,
+// значить вікно фокуса насправді не втрачало, і перевидавати нічого.
+let _lastInPage = 0;
+["pointerdown", "touchstart", "keydown", "input"].forEach((t) => {
+  document.addEventListener(t, () => { _lastInPage = Date.now(); }, true);
+});
 // Втрата фокуса ВІКНА: учень клікнув у сусіднє вікно (напр. ШІ поруч), а вкладка
 // лишилася ВИДИМОЮ – visibilitychange такого не бачить. Поріг той самий (2 с),
 // щоб випадковий клік чи системне спливне вікно не карали.
@@ -609,8 +618,12 @@ window.addEventListener("blur", () => {
 window.addEventListener("focus", async () => {
   if (!state.active || !_unfocusAt) return;
   const away = Date.now() - _unfocusAt;
+  const startedAt = _unfocusAt;
   _unfocusAt = 0;
-  if (away > 2000){ await handleIntegrity("unfocus", {ms: away}); }
+  if (away <= 2000) return;
+  // Діяли на сторінці, поки вікно вважалося розфокусованим -> це не вихід.
+  if (_lastInPage > startedAt){ sendEvent("winblur_ignored", {ms: away}); return; }
+  await handleIntegrity("unfocus", {ms: away});
 });
 document.addEventListener("visibilitychange", async () => {
   if (!state.active) return;
@@ -654,9 +667,15 @@ function init(){
     kbdSetOpen($("kbd-panel").hidden);  // якщо схована – відкриваємо, і навпаки
   });
   const panel = $("kbd-panel");
-  // mousedown не дає полю втратити фокус і виділення до вставки.
-  panel.addEventListener("mousedown", (e) => {
-    if (e.target.closest("button")) e.preventDefault();
+  // Не даємо полю втратити фокус і виділення до вставки. pointerdown покриває
+  // і мишу, і дотик: раніше тут був лише mousedown, тому на телефоні поле
+  // втрачало фокус, системна клавіатура закривалася й тягла за собою
+  // window.blur -> питання перевидавалося посеред набору.
+  ["pointerdown", "mousedown"].forEach((t) => {
+    panel.addEventListener(t, (e) => {
+      if (e.target.closest("button")) e.preventDefault();
+    });
+    $("kbd-toggle").addEventListener(t, (e) => e.preventDefault());
   });
   panel.addEventListener("click", (e) => {
     const btn = e.target.closest("button");
