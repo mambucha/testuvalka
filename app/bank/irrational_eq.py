@@ -252,15 +252,18 @@ def _quadratic_radicand(rng: random.Random) -> Question:
     """
     b = rng.choice([2, 3, 4, 6, 8, 9, 10, 12])
     sq = b * b
+    # Пару (-b, b) відкидаємо: тоді a = 0 і лишається |x| = b, а не тричлен.
     pairs = [(-d, sq // d) for d in range(1, sq + 1)
-             if sq % d == 0 and d <= 30 and sq // d <= 30]
+             if sq % d == 0 and d <= 30 and sq // d <= 30 and d != b]
     p, q = rng.choice(pairs)
     a = -(p + q)
-    # Друге рівняння: або з від'ємною правою частиною (коренів немає), або
-    # з іншою додатною (коренів два). Випадково, щоб третє поле не було стале.
+    # Третій пункт – ТА САМА ліва частина, змінюється лише права, і обидва
+    # варіанти чогось навчають: від'ємне праворуч неможливе (коренів нема),
+    # нуль праворуч – можливий (корені там, де підкореневий дорівнює нулю).
+    # Брати довільне інше додатне число сенсу не мало: це була б та сама
+    # задача вдруге.
     negative = rng.random() < 0.5
-    b2 = rng.choice([v for v in (2, 3, 4, 5, 6, 7, 8) if v != b])
-    rhs2 = f"-{b}" if negative else str(b2)
+    rhs2 = f"-{b}" if negative else "0"
     return Question(
         key="ir_quadratic_radicand",
         statement=(
@@ -278,7 +281,7 @@ def _quadratic_radicand(rng: random.Random) -> Question:
                  points=1),
         ],
         seconds=130,
-        params={"a": a, "b": b, "p": p, "q": q, "negative": negative, "b2": b2},
+        params={"a": a, "b": b, "p": p, "q": q, "negative": negative},
     )
 
 
@@ -543,8 +546,10 @@ def _two_radicals(rng: random.Random) -> Question:
         ),
         parts=[
             Part("lo", "1) найменше $x$:", sp.Integer(lo), points=1),
-            Part("x", "2) корінь:", sp.Integer(x0), points=1),
-            Part("val", "3) значення кореня:", sp.Integer(p), points=1,
+            # Підписи навмисне без слова «корінь»: у цій темі воно означає
+            # і корінь рівняння, і сам радикал, і студент плутає одне з одним.
+            Part("x", "2) $x$ =", sp.Integer(x0), points=1),
+            Part("val", rf"3) ${_root(2, _lin(1, a))}$ =", sp.Integer(p), points=1,
                  carry=lambda prev, _a=a: (
                      None if _num(prev.get("x")) is None
                      or prev["x"] + _a < 0

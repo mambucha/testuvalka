@@ -240,7 +240,12 @@ def test_quadratic_radicand_math():
         for v in (a["small"], a["big"]):
             assert _holds(lhs, sp.Integer(b), v), (i, v, p)   # сторонніх немає
         assert a["small"] < 0 < a["big"], (i, p)
+        # третій пункт – та сама ліва частина, лише інша права:
+        # від'ємне праворуч неможливе, нуль праворуч дає два корені
+        assert p["a"] != 0, (i, "інакше це |x| = b, а не квадратний тричлен")
         assert a["cnt"] == (0 if p["negative"] else 2), (i, p)
+        tail = q.statement.rsplit("=", 1)[1]
+        assert (f"-{p['b']}" in tail) if p["negative"] else ("0" in tail), (i, tail)
 
 
 def test_no_roots_math():
@@ -328,6 +333,10 @@ def test_two_radicals_math():
         assert a["lo"] == max(-p["a"], -p["b"]), (i, p)
         assert a["x"] >= a["lo"], (i, "корінь мусить бути в області визначення")
         assert a["val"] == sp.sqrt(a["x"] + p["a"]), (i, p)
+        # у цій темі «корінь» означає і корінь рівняння, і радикал, тож
+        # у підписах полів цього слова бути не повинно
+        for part in q.parts[1:]:
+            assert "корінь" not in part.label.lower(), (i, part.label)
         assert p["p"] != p["q"], (i, "однакові корені зробили б задачу вдвічі простішою")
 
 
