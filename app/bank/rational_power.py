@@ -68,8 +68,13 @@ def _coef(v: int) -> str:
 
 
 def _num(value):
-    """Число з попереднього кроку або None, якщо переносити нічого."""
-    if value is None or getattr(value, "free_symbols", set()):
+    """Число з попереднього кроку або None, якщо переносити нічого.
+
+    Нуль теж не переносимо: він нерухома точка і суми, і добутку, тож
+    студент, який написав 0 в усі поля, підтверджував би сам себе. Жоден
+    еталонний проміжний результат тут нулем не буває.
+    """
+    if value is None or getattr(value, "free_symbols", set()) or value == 0:
         return None
     return value
 

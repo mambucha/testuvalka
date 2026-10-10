@@ -52,6 +52,23 @@ def _signed(v: int) -> str:
     return f" + {v}" if v > 0 else f" - {abs(v)}"
 
 
+def _step(fn, *keys):
+    """Перенесення помилки з охороною від нуля.
+
+    Нуль – нерухома точка всіх цих перетворень: похідна нуля нуль, нуль
+    помножений на будь-що нуль, нуль поділений на будь-що нуль. Через це
+    студент, який написав 0 в усі поля, підтверджував би сам себе й діставав
+    бал за кожен перенесений крок. Жоден еталонний проміжний результат у
+    цьому банку нулем не буває, тож відмова нічого чесного не коштує.
+    """
+    def _carry(prev):
+        vals = [prev.get(k) for k in keys]
+        if any(v is None or v == 0 for v in vals):
+            return None
+        return fn(*vals)
+    return _carry
+
+
 def _d(expr):
     """Похідна у зручній для звіряння формі."""
     return sp.simplify(sp.diff(expr, _x))
@@ -174,7 +191,7 @@ def _product(rng: random.Random) -> Question:
             Part("dv", "$v'$ =", dv, kind="expr", points=1),
             Part(
                 "dy", "$y'$ =", dy, kind="expr", points=1,
-                carry=lambda prev: prev["du"] * v + u * prev["dv"],
+                carry=_step(lambda du, dv: du * v + u * dv, "du", "dv"),
                 carry_from=("du", "dv"),
             ),
         ],
@@ -205,7 +222,7 @@ def _quotient(rng: random.Random) -> Question:
             Part("num", "$u'v - uv'$ =", num, kind="expr", points=1),
             Part(
                 "dy", "$y'$ =", dy, kind="expr", points=1,
-                carry=lambda prev: prev["num"] / v**2,
+                carry=_step(lambda num: num / v**2, "num"),
                 carry_from=("num",),
             ),
         ],
@@ -237,7 +254,7 @@ def _chain_power(rng: random.Random) -> Question:
             Part("du", "$u'$ =", du, kind="expr", points=1),
             Part(
                 "dy", "$y'$ =", dy, kind="expr", points=1,
-                carry=lambda prev: n * inner ** (n - 1) * prev["du"],
+                carry=_step(lambda du: n * inner ** (n - 1) * du, "du"),
                 carry_from=("du",),
             ),
         ],
@@ -267,7 +284,7 @@ def _product_chain(rng: random.Random) -> Question:
             Part("dv", rf"$\left({vtex}\right)'$ =", dv, kind="expr", points=1),
             Part(
                 "dy", "$y'$ =", dy, kind="expr", points=1,
-                carry=lambda prev: v + _x * prev["dv"],
+                carry=_step(lambda dv: v + _x * dv, "dv"),
                 carry_from=("dv",),
             ),
         ],
@@ -297,7 +314,7 @@ def _chain_exp(rng: random.Random) -> Question:
             Part("du", "$u'$ =", du, kind="expr", points=1),
             Part(
                 "dy", "$y'$ =", dy, kind="expr", points=1,
-                carry=lambda prev: sp.exp(inner) * prev["du"],
+                carry=_step(lambda du: sp.exp(inner) * du, "du"),
                 carry_from=("du",),
             ),
         ],
@@ -328,7 +345,7 @@ def _chain_sqrt(rng: random.Random) -> Question:
             Part("du", "$u'$ =", du, kind="expr", points=1),
             Part(
                 "dy", "$y'$ =", dy, kind="expr", points=1,
-                carry=lambda prev: prev["du"] / (2 * sp.sqrt(inner)),
+                carry=_step(lambda du: du / (2 * sp.sqrt(inner)), "du"),
                 carry_from=("du",),
             ),
         ],
@@ -359,7 +376,7 @@ def _chain_ln(rng: random.Random) -> Question:
             Part("du", "$u'$ =", du, kind="expr", points=1),
             Part(
                 "dy", "$y'$ =", dy, kind="expr", points=1,
-                carry=lambda prev: prev["du"] / inner,
+                carry=_step(lambda du: du / inner, "du"),
                 carry_from=("du",),
             ),
         ],
@@ -391,7 +408,7 @@ def _second_poly(rng: random.Random) -> Question:
             Part("d1", "$y'$ =", d1, kind="expr", points=1),
             Part(
                 "d2", "$y''$ =", d2, kind="expr", points=1,
-                carry=lambda prev: sp.diff(prev["d1"], _x),
+                carry=_step(lambda d1: sp.diff(d1, _x), "d1"),
                 carry_from=("d1",),
             ),
         ],
@@ -421,7 +438,7 @@ def _second_trig(rng: random.Random) -> Question:
             Part("d1", "$y'$ =", d1, kind="expr", points=1),
             Part(
                 "d2", "$y''$ =", d2, kind="expr", points=1,
-                carry=lambda prev: sp.diff(prev["d1"], _x),
+                carry=_step(lambda d1: sp.diff(d1, _x), "d1"),
                 carry_from=("d1",),
             ),
         ],
