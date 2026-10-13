@@ -222,11 +222,14 @@ def test_properties_math():
             assert fr.denominator > 1, (i, "показник скоротився до цілого", fr)
         assert pp + qq - rr == p["k1"], (i, p)
         assert u * v == p["k2"], (i, p)
-        # усі три пункти – ЗНАЧЕННЯ: мішанина «показник + значення» колись
-        # підштовхувала перемножити 3 на 25 замість 125 на 25
+        # Обидва пункти – ЗНАЧЕННЯ. Третій (добуток) прибрано: перемножити
+        # 25 на 125 нічого не перевіряє про властивості степеня.
         assert a["val1"] == sp.Integer(b) ** p["k1"], (i, p)
         assert a["val2"] == sp.Integer(b) ** p["k2"], (i, p)
-        assert a["val"] == a["val1"] * a["val2"], (i, p)
+        assert len(q.parts) == 2, (i, "третій крок більше не потрібен")
+        assert p["den"] in (3, 4), (i, "знаменник 2 неможливий")
+        assert max(abs(pp.numerator), abs(qq.numerator),
+                   abs(rr.numerator)) <= 16, (i, "показники мусять читатися")
         # власне перевірка властивостей, зібрана наново
         assert (sp.Integer(b) ** _R(pp.numerator, pp.denominator)
                 * sp.Integer(b) ** _R(qq.numerator, qq.denominator)
@@ -237,15 +240,16 @@ def test_properties_math():
 
 
 def test_properties_asks_only_for_values():
-    """Три пункти – три ЗНАЧЕННЯ. Якщо один питає показник, а другий значення,
-    то в третьому природно перемножити одне на одне й дістати нісенітницю."""
+    """Обидва пункти просять ЗНАЧЕННЯ, і слова «показник» в умові немає.
+
+    Колись перший пункт питав показник, а другий значення – і в третьому
+    природно було перемножити одне на одне (3 на 25 замість 125 на 25).
+    Третій крок потім прибрали зовсім, але мішанини не має бути й тут.
+    """
     for i in range(8):
         q = _build("rp_properties", i)
-        s = q.statement.lower()
-        assert "показник" not in s, (i, "умова знову змішує показник зі значенням")
-        p = q.params
-        mixed = sp.Integer(p["k1"]) * sp.Integer(p["b"]) ** p["k2"]
-        assert _a(q)["val"] != mixed or p["k1"] == p["b"] ** p["k1"], (i, p)
+        assert "показник" not in q.statement.lower(), (i, "мішанина повернулась")
+        assert [p.key for p in q.parts] == ["val1", "val2"], (i, "лише значення")
 
 
 def test_same_base_math():

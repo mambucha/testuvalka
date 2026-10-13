@@ -70,6 +70,12 @@ class Part:
     # бо для від'ємних це різні вирази.
     positive: bool = False
 
+    # Так само, але змінні ВІД'ЄМНІ. Потрібно там, де умова прямо це каже
+    # («відомо, що x < 0»): інакше $2|x|$ і $-2x$ рушій вважає різними
+    # виразами, хоч для від'ємних це те саме, і правильна відповідь
+    # студента йшла б у мінус.
+    negative: bool = False
+
     # Перенесення помилки: перерахувати еталон із того, що студент ввів раніше.
     # Сигнатура: (prev: dict[str, sympy-вираз]) -> еталон | None
     # None означає "не вдалося перерахувати" – тоді звіряємо з початковим еталоном.
@@ -349,6 +355,10 @@ _XP, _YP, _TP = sp.symbols("x_pos y_pos t_pos", positive=True)
 _POSITIVE_SUBS = {_X: _XP, _Y: _YP, _T: _TP}
 
 
+_XN, _YN, _TN = sp.symbols("x_neg y_neg t_neg", negative=True)
+_NEGATIVE_SUBS = {_X: _XN, _Y: _YN, _T: _TN}
+
+
 def as_positive(expr):
     """Той самий вираз, але зі змінними, оголошеними додатними."""
     try:
@@ -357,9 +367,19 @@ def as_positive(expr):
         return expr
 
 
+def as_negative(expr):
+    """Той самий вираз, але зі змінними, оголошеними від'ємними."""
+    try:
+        return sp.sympify(expr).subs(_NEGATIVE_SUBS)
+    except Exception:  # noqa: BLE001
+        return expr
+
+
 def _same(part: Part, got, expected) -> bool:
     if part.positive:
         got, expected = as_positive(got), as_positive(expected)
+    elif part.negative:
+        got, expected = as_negative(got), as_negative(expected)
     return equal(got, expected, part.tol)
 
 

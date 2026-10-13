@@ -459,6 +459,10 @@ function renderExprPreview(el, val){
     .replace(/factorial\s*\(([^()]*)\)?/gi, (m, g) => (g || "") + "!")
     .replace(/\b(ctg|tg|sin|cos|tan|cot|exp|ln)\b/g, (m) => FN[m])
     .replace(/\^\s*\(([^()]*)\)/g, (m, g) => "^{" + g + "}")  // e^(3x) -> e^{3x}
+    // Багатоцифровий показник без дужок: без фігурних KaTeX бере лише першу
+    // цифру, і x^12 малювався як «x¹2». На сам розбір відповіді це не
+    // впливало – лише на прев'ю, але студента збивало.
+    .replace(/\^\s*(-?\d+)/g, (m, g) => "^{" + g + "}")
     .replace(/\*/g, "\\cdot ");
   if (window.katex){
     try { katex.render(tex, el, {throwOnError:false, strict:false}); return; }

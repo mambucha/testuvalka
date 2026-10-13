@@ -106,7 +106,13 @@ def test_only_the_graph_task_has_a_figure():
 
 def test_timings_calibrated():
     total = sum(_build(key, 1).seconds for key in KEYS)
-    assert 1500 <= total <= 1750, total          # ~25–29 хв на підсумкову
+    # Найважчим завданням викладач попросив додати по хвилині, тож підсумкова
+    # помітно довша за тематичні тести.
+    assert 1800 <= total <= 2050, total          # ~30–34 хв
+    hard = {"tf_root_of_root", "tf_fraction_actions", "tf_substitution_quartic",
+            "tf_bring_under_letters"}
+    for key in hard:
+        assert _build(key, 1).seconds >= 200, key
 
 
 def test_many_variants_per_template():
@@ -198,16 +204,27 @@ def test_bring_under_letters_math():
 
 
 def test_root_of_root_math():
-    for i in range(20):
+    """Хід саме шкільний: внести під внутрішній корінь, тоді корінь з кореня.
+
+    Через раціональний показник задача теж розв'язується, але викладач
+    показував її інакше, тож і кроки мають бути такі.
+    """
+    for i in range(25):
         q = _build("tf_root_of_root", i)
         p, a = q.params, _a(q)
         n, m, aa, b = p["n"], p["m"], p["a"], p["b"]
-        assert math.gcd(b, m) == 1, (i, "дріб має бути нескоротним")
-        assert a["inner"] == sp.Rational(b, m), (i, p)
-        assert a["middle"] == aa + sp.Rational(b, m), (i, p)
-        # той самий вираз, зібраний з коренів
+        assert math.gcd(b, m) == 1, (i, "внутрішній корінь не має скорочуватися")
+        # 1) внесення множника під внутрішній корінь
+        assert a["under"] == aa * m + b, (i, p)
+        # 2) правило кореня з кореня
+        assert a["deg"] == n * m, (i, p)
+        # 3) значення: той самий вираз, зібраний з коренів
         built = sp.root(_x**aa * sp.root(_x**b, m), n)
-        assert _same(a["result"], built), (i, p)
+        assert sp.simplify(built.subs(_x, p["x0"]) - a["val"]) == 0, (i, p)
+        # результат мусить лишатися коренем, а не просто x
+        assert 2 <= p["d"] <= 8 and p["d"] != p["e"], (i, p)
+        # в умові немає раціонального показника
+        assert "frac" not in q.statement, (i, "умова не має вести через степінь")
 
 
 def test_fraction_actions_math():

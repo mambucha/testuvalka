@@ -250,58 +250,84 @@ def _bring_under_letters(rng: random.Random) -> Question:
                  positive=True),
             Part("val", "3) значення:", sp.Integer(value), points=1),
         ],
-        seconds=140,
+        seconds=200,
         params={"n": n, "k": k, "m": m, "e": e, "p": p, "x0": x0, "y0": y0},
     )
+
+
+# Набори (n, m, a, b) для «кореня з кореня». Добираємо так, щоб після
+# скорочення лишався СПРАВЖНІЙ корінь (степінь 2..6, не сам x), а числова
+# перевірка велася на невеликих числах.
+_ROOT_OF_ROOT = []
+for _n in (4, 6, 8, 9, 10):
+    for _m in (3, 5, 7):
+        for _a in (2, 3, 4, 5, 6):
+            for _b in range(1, _m):
+                if math.gcd(_b, _m) != 1:
+                    continue
+                _under = _a * _m + _b          # показник під внутрішнім коренем
+                _deg = _n * _m                 # степінь спільного кореня
+                _g = math.gcd(_deg, _under)
+                _d, _e = _deg // _g, _under // _g
+                if 2 <= _d <= 8 and 1 <= _e <= 9 and _d != _e:
+                    _ROOT_OF_ROOT.append((_n, _m, _a, _b, _under, _deg, _d, _e))
 
 
 @template("tf_root_of_root")
 def _root_of_root(rng: random.Random) -> Question:
     """Завдання 6: корінь з кореня.
 
-    Три кроки відповідають трьом діям: внутрішній корінь у степінь, зведення
-    показників під спільним коренем, зовнішній корінь у степінь.
+    Хід саме той, яким це показують у школі (§5), БЕЗ переходу до раціонального
+    показника: внести множник під внутрішній корінь, потім застосувати правило
+    кореня з кореня, потім скоротити показники. Через раціональний показник
+    задача теж розв'язується, але викладач пояснював її інакше.
     """
-    n = rng.choice([3, 4, 6])
-    m = rng.choice([3, 5, 7])
-    b = rng.choice([v for v in range(2, 8) if math.gcd(v, m) == 1])
-    a = rng.choice([2, 3, 4])
-    inner = Fraction(b, m)                   # показник внутрішнього кореня
-    middle = Fraction(a) + inner             # показник усього підкореневого
-    final = middle / n                       # показник результату
+    n, m, a, b, under, deg, d, e = rng.choice(_ROOT_OF_ROOT)
+    c = 2
+    x0 = c**d
+    value = c**e
     return Question(
         key="tf_root_of_root",
         statement=(
             r"Спростіть вираз (змінна набуває додатних значень):"
             + "\n" + rf"$$\sqrt[{n}]{{{_pow_tex('x', a)}"
             rf"\sqrt[{m}]{{{_pow_tex('x', b)}}}}}$$"
-            + "\n" + rf"1) Запишіть $\sqrt[{m}]{{{_pow_tex('x', b)}}}$ у вигляді "
-            r"степеня. Чому дорівнює показник?"
-            + "\n2) Чому дорівнює показник УСЬОГО виразу під зовнішнім коренем?"
-            + "\n3) Запишіть остаточний результат у вигляді степеня."
+            + "\n" + rf"1) Внесіть множник ${_pow_tex('x', a)}$ під ВНУТРІШНІЙ "
+            rf"корінь. Який показник матиме $x$ під ним?"
+            + "\n" + rf"2) За правилом кореня з кореня "
+            r"$\sqrt[n]{\sqrt[m]{a}} = \sqrt[nm]{a}$ – корінь якого степеня "
+            "вийде?"
+            + "\n" + rf"3) Скоротіть показники й обчисліть значення виразу "
+            rf"при $x = {x0}$."
             + "\n" + _HINT
         ),
         parts=[
-            Part("inner", "1) показник внутрішнього:",
-                 sp.Rational(inner.numerator, inner.denominator), points=1),
-            Part("middle", "2) показник під коренем:",
-                 sp.Rational(middle.numerator, middle.denominator), points=1,
-                 carry=lambda prev, _a=a: (
-                     None if _num(prev.get("inner")) is None
-                     else prev["inner"] + _a),
-                 carry_from=("inner",)),
-            Part("result", "3) результат:",
-                 _x ** sp.Rational(final.numerator, final.denominator),
-                 kind="expr", points=1, positive=True,
-                 carry=lambda prev, _n=n: (
-                     None if _num(prev.get("middle")) is None
-                     or abs(prev["middle"] / _n) > 12
-                     else _x ** (prev["middle"] / _n)),
-                 carry_from=("middle",)),
+            Part("under", "1) показник під внутрішнім:", sp.Integer(under),
+                 points=1),
+            Part("deg", "2) степінь спільного кореня:", sp.Integer(deg),
+                 points=1),
+            Part("val", rf"3) значення при $x = {x0}$:", sp.Integer(value),
+                 points=1,
+                 carry=lambda prev, _c=c, _d=d: _carry_root_value(prev, _c, _d),
+                 carry_from=("under", "deg")),
         ],
-        seconds=150,
-        params={"n": n, "m": m, "a": a, "b": b},
+        seconds=210,
+        params={"n": n, "m": m, "a": a, "b": b, "under": under, "deg": deg,
+                "d": d, "e": e, "x0": x0},
     )
+
+
+def _carry_root_value(prev, c, d):
+    """Значення за ВЛАСНИМИ показниками студента: $x_0^{p_1/p_2}$ при
+    $x_0 = c^d$ дає $c^{d p_1 / p_2}$ – переносимо лише коли вийшов цілий
+    і розумний показник."""
+    p1, p2 = _num(prev.get("under")), _num(prev.get("deg"))
+    if p1 is None or p2 is None:
+        return None
+    power = sp.Rational(d) * p1 / p2
+    if not power.is_Integer or not 0 <= power <= 12:
+        return None
+    return sp.Integer(c) ** int(power)
 
 
 # =========================================================================
@@ -348,7 +374,7 @@ def _fraction_actions(rng: random.Random) -> Question:
                      else prev["first"] - prev["second"]),
                  carry_from=("first", "second")),
         ],
-        seconds=150,
+        seconds=210,
         params={"k": k, "c": c},
     )
 
@@ -394,6 +420,6 @@ def _substitution_quartic(rng: random.Random) -> Question:
                      else prev["t2"] ** 4 - _a),
                  carry_from=("t2",)),
         ],
-        seconds=150,
+        seconds=210,
         params={"a": a, "t1": t1, "t2": t2, "b": b, "c": c},
     )

@@ -364,7 +364,11 @@ def _simplify_sign(rng: random.Random) -> Question:
             + f"\nПотім обчисліть значення при $x = {x0}$."
         ),
         parts=[
-            Part("simp", "спрощений вираз =", res, kind="expr", points=1),
+            # negative=True: умова прямо каже $x<0$, тож $2|x|$ і $-2x$ – та
+            # сама відповідь. Без цього правильний запис через модуль ішов
+            # у мінус.
+            Part("simp", "спрощений вираз =", res, kind="expr", points=1,
+                 negative=True),
             Part(
                 "val", rf"значення при $x={x0}$ =", val, points=1,
                 carry=lambda prev: (
