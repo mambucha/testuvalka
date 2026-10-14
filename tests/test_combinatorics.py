@@ -169,12 +169,22 @@ def test_no_probability_or_statistics():
 
 
 def test_timings_calibrated():
+    """Час вивірено за реальними замірами, а не на око.
+
+    У перших чотирьох студентів середній час на питання порівняли з лімітом:
+    там, де він перевищував 75% ліміту або сам по собі переходив 100 с,
+    додано по 30 с. Решту лишили як було – запас там і так 25–40%.
+    """
     total = 0
     for key in KEYS:
         q = _build(key, 1)
-        assert 100 <= q.seconds <= 170, (key, q.seconds)
+        assert 100 <= q.seconds <= 190, (key, q.seconds)
         total += q.seconds
-    assert 1400 <= total <= 1700, total          # ≈23–28 хв на 12 питань
+    assert 1700 <= total <= 1900, total          # ≈28–32 хв на 12 питань
+    longer = {"cmb_two_lines", "cmb_exactly_k", "cmb_sequences", "cmb_polygon",
+              "cmb_team_with_fixed", "cmb_digits_zero", "cmb_permutations"}
+    for key in longer:
+        assert _build(key, 1).seconds >= 140, key
 
 
 # --- стійкість до списування -------------------------------------------

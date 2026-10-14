@@ -256,7 +256,7 @@ def _digits_zero(rng: random.Random) -> Question:
             Part("even_last", "3) закінчуються парною:", sp.Integer(even_last),
                  points=1),
         ],
-        seconds=140,
+        seconds=170,
         params={"digits": digits, "k": k},
     )
 
@@ -378,7 +378,7 @@ def _sequences(rng: random.Random) -> Question:
                  points=1, carry=_carry_add("exact", m ** (k + 1)),
                  carry_from=("exact",)),
         ],
-        seconds=130,
+        seconds=160,
         params={"m": m, "k": k},
     )
 
@@ -425,7 +425,7 @@ def _permutations(rng: random.Random) -> Question:
                  sp.Integer(firstg), points=1),
             Part("third", label3, sp.Integer(third), points=1),
         ],
-        seconds=110,
+        seconds=140,
         params={"n": n, "g": g, "both_ends": both_ends},
     )
 
@@ -499,7 +499,7 @@ def _team_with_fixed(rng: random.Random) -> Question:
                  carry=_carry_diff("all", "with_head"),
                  carry_from=("all", "with_head")),
         ],
-        seconds=130,
+        seconds=160,
         params={"n": n, "k": k},
     )
 
@@ -539,7 +539,7 @@ def _polygon(rng: random.Random) -> Question:
             Part("poly", f"2) {rname}:", sp.Integer(poly), points=1),
             Part("third", label3, sp.Integer(third), points=1),
         ],
-        seconds=130,
+        seconds=160,
         params={"n": n, "r": r, "diagonals": diagonals},
     )
 
@@ -574,7 +574,7 @@ def _exactly_k(rng: random.Random) -> Question:
                  carry=_carry_product("masons", "others"),
                  carry_from=("masons", "others")),
         ],
-        seconds=150,
+        seconds=180,
         params={"n": n, "m": m, "s": s, "a": a},
     )
 
@@ -608,6 +608,6 @@ def _two_lines(rng: random.Random) -> Question:
                  points=1, carry=_carry_sum("on_a", "on_b"),
                  carry_from=("on_a", "on_b")),
         ],
-        seconds=150,
+        seconds=180,
         params={"p": p, "q": q},
     )
