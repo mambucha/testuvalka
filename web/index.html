@@ -187,6 +187,11 @@
         <button type="button" data-ins="abs()" data-caret="-1" class="k-fn">|x|</button>
         <button type="button" data-ins="e" class="k-fn">e</button>
       </div>
+      <div class="kbd-row">
+        <button type="button" data-act="frac" class="k-op">a/b</button>
+        <button type="button" data-ins="()" data-caret="-1" class="k-op">(&nbsp;)</button>
+        <button type="button" data-ins="^()" data-caret="-1" class="k-op">x<sup>(&nbsp;)</sup></button>
+      </div>
     </div>
     <button id="btn-submit">Відповісти</button>
     <div id="quiz-err" class="err"></div>
@@ -452,6 +457,67 @@ function renderExprPreview(el, val){
     sin: "\\sin", cos: "\\cos", tan: "\\tan", cot: "\\cot",
     tg: "\\operatorname{tg}", ctg: "\\operatorname{ctg}", exp: "\\exp", ln: "\\ln",
   };
+  // «(A)/(B)» малюємо справжнім дробом – великий буквений вираз через скісну
+  // риску не прочитати, і студент не бачить, чи правильно розставив дужки.
+  // Перетворюємо лише там, де хоч один бік у дужках: прості 1/2 і показник
+  // x^{1/2} лишаємо як є, вони й так читаються.
+  const PLAIN = /[A-Za-z0-9.!^\\]/;
+  // Межа дужкової групи: вперед від відкривної або назад від закривної.
+  function match(src, from, open, close, back){
+    let depth = 0;
+    for (let j = from; back ? j >= 0 : j < src.length; back ? j-- : j++){
+      if (src[j] === (back ? close : open)) depth++;
+      else if (src[j] === (back ? open : close)){ depth--; if (!depth) return j; }
+    }
+    return -1;
+  }
+  // Операнд – послідовність атомів і дужкових груп, разом зі степенем:
+  // у «(x+2)^2» знаменником є все, а не лише дужки.
+  function scan(src, i, back){
+    let j = i, any = false;
+    for (;;){
+      const c = back ? src[j - 1] : src[j];
+      if (c === undefined) break;
+      if (c === (back ? ")" : "(")){
+        const k = match(src, back ? j - 1 : j, "(", ")", back);
+        if (k < 0) break;
+        j = back ? k : k + 1;
+      } else if (c === (back ? "}" : "{")){
+        const k = match(src, back ? j - 1 : j, "{", "}", back);
+        if (k < 0) break;
+        j = back ? k : k + 1;
+      } else if (PLAIN.test(c)){
+        j += back ? -1 : 1;
+      } else break;
+      any = true;
+    }
+    return any ? j : null;
+  }
+  function unwrap(s){
+    return (s.startsWith("(") && match(s, 0, "(", ")", false) === s.length - 1)
+      ? s.slice(1, -1) : s;
+  }
+  function toFraction(src){
+    for (let pass = 0; pass < 8; pass++){
+      let changed = false;
+      for (let i = 1; i < src.length - 1; i++){
+        if (src[i] !== "/") continue;
+        const ls = scan(src, i, true);
+        const re = scan(src, i + 1, false);
+        if (ls === null || re === null) continue;
+        const num = src.slice(ls, i), den = src.slice(i + 1, re);
+        // Дробом малюємо лише «великі» вирази: прості 1/2 і показник x^{1/2}
+        // читаються й так, а дріб у верхньому індексі виглядав би громіздко.
+        if (!/[({]/.test(num) && !/[({]/.test(den)) continue;
+        src = src.slice(0, ls) + "\\dfrac{" + unwrap(num) + "}{" + unwrap(den)
+              + "}" + src.slice(re);
+        changed = true;
+        break;
+      }
+      if (!changed) break;
+    }
+    return src;
+  }
   let tex = val
     .replace(/\*\*/g, "^")
     .replace(/sqrt\s*\(([^()]*)\)?/gi, (m, g) => "\\sqrt{" + (g || "") + "}")
@@ -464,6 +530,7 @@ function renderExprPreview(el, val){
     // впливало – лише на прев'ю, але студента збивало.
     .replace(/\^\s*(-?\d+)/g, (m, g) => "^{" + g + "}")
     .replace(/\*/g, "\\cdot ");
+  tex = toFraction(tex);
   if (window.katex){
     try { katex.render(tex, el, {throwOnError:false, strict:false}); return; }
     catch(e){}
@@ -505,6 +572,23 @@ function kbdInsert(text, caret){
   inp.value = inp.value.slice(0, s) + text + inp.value.slice(e);
   let pos = s + text.length + (caret || 0);
   pos = Math.max(0, Math.min(pos, inp.value.length));
+  inp.setSelectionRange(pos, pos);
+  inp.dispatchEvent(new Event("input"));
+  state.lastInput = inp;
+}
+// Дріб: якщо щось виділено – стає чисельником, а курсор іде в знаменник;
+// якщо ні – вставляємо порожній каркас і стаємо в чисельник. Дужки потрібні,
+// бо без них «x+1/x-1» розбереться як x + (1/x) - 1.
+function kbdFraction(){
+  const inp = kbdTarget();
+  if (!inp){ return; }
+  inp.focus();
+  const s = inp.selectionStart ?? inp.value.length;
+  const e = inp.selectionEnd ?? inp.value.length;
+  const sel = inp.value.slice(s, e);
+  const text = "(" + sel + ")/()";
+  inp.value = inp.value.slice(0, s) + text + inp.value.slice(e);
+  const pos = sel ? s + text.length - 1 : s + 1;
   inp.setSelectionRange(pos, pos);
   inp.dispatchEvent(new Event("input"));
   state.lastInput = inp;
@@ -686,6 +770,7 @@ function init(){
     if (!btn) return;
     if (btn.dataset.act === "back"){ kbdBackspace(); return; }
     if (btn.dataset.act === "clear"){ kbdClear(); return; }
+    if (btn.dataset.act === "frac"){ kbdFraction(); return; }
     if (btn.dataset.ins != null){
       kbdInsert(btn.dataset.ins, parseInt(btn.dataset.caret || "0", 10));
     }

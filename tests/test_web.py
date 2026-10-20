@@ -93,6 +93,23 @@ def test_symbol_keyboard_present(client):
     assert "testuvalka:kbd" in html  # стан зберігається
 
 
+def test_fraction_input_present(client):
+    """Кнопка дробу і малювання дробу в прев'ю.
+
+    Великий буквений вираз через скісну риску не прочитати, а головне –
+    студент не бачить, чи правильно розставив дужки. Кнопка вставляє готовий
+    каркас «()/()», а виділений чисельник обгортає сама.
+    """
+    html = client.get("/").text
+    assert 'data-act="frac"' in html          # сама кнопка
+    assert "function kbdFraction" in html
+    assert 'data-ins="()"' in html            # дужки
+    assert 'data-ins="^()"' in html           # степінь у дужках
+    # прев'ю: (A)/(B) -> \dfrac{A}{B}
+    assert "function toFraction" in html
+    assert "\\\\dfrac{" in html
+
+
 def test_live_math_preview_present(client):
     """Живий математичний прев'ю введення (учень бачить формулу, не сирий текст)."""
     html = client.get("/").text
