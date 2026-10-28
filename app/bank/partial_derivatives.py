@@ -151,6 +151,58 @@ def _first_log(rng: random.Random) -> Question:
     )
 
 
+@template("pd_first_fraction")
+def _first_fraction(rng: random.Random) -> Question:
+    """Частинні похідні дробу – правило частки (ПЗ 8, завдання 4).
+
+    Прийшло на місце завдання про область визначення: викладач попросив
+    замінити його на щось із самими похідними.
+
+    Дріб $(ax + by)/(x + cy)$ зручний тим, що після правила частки чисельник
+    згортається до одного доданка – видно, довів студент перетворення до
+    кінця чи кинув на півдорозі. Третій крок – похідна другого порядку від
+    того ж дробу, тобто ще й степенева складена.
+
+    Коефіцієнт $c$ у знаменнику стоїть не для краси: без нього відповідь
+    залежала б лише від різниці $a - b$, і на весь шаблон вийшло б одинадцять
+    різних варіантів.
+    """
+    # Явний перебір замість відсіву: a*c = b зробило б функцію сталою, а всі
+    # три похідні – нулями.
+    combos = [(a, b, c)
+              for a in (1, 2, 3, 4, 5, 6)
+              for b in (1, 2, 3, 4, 5, 6)
+              for c in (1, 2, 3, 4)
+              if a * c != b]
+    a, b, c = rng.choice(combos)
+    z = (a * _x + b * _y) / (_x + c * _y)
+    zx = sp.simplify(sp.diff(z, _x))
+    zy = sp.simplify(sp.diff(z, _y))
+    zxx = sp.simplify(sp.diff(z, _x, 2))
+    tex = rf"\dfrac{{{_c(a)}x + {_c(b)}y}}{{x + {_c(c)}y}}"
+    return Question(
+        key="pd_first_fraction",
+        statement=(
+            rf"Дано функцію $z = {tex}$."
+            + "\n" + r"1) Знайдіть $\dfrac{\partial z}{\partial x}$."
+            + "\n" + r"2) Знайдіть $\dfrac{\partial z}{\partial y}$."
+            + "\n" + r"3) Знайдіть $\dfrac{\partial^2 z}{\partial x^2}$."
+            + "\n" + _HINT
+        ),
+        parts=[
+            Part("zx", r"1) $z'_x$ =", zx, kind="expr", points=1),
+            Part("zy", r"2) $z'_y$ =", zy, kind="expr", points=1),
+            Part("zxx", r"3) $z''_{xx}$ =", zxx, kind="expr", points=1,
+                 carry=lambda prev: (
+                     sp.diff(prev["zx"], _x)
+                     if _has(prev.get("zx"), _x) else None),
+                 carry_from=("zx",)),
+        ],
+        seconds=180,
+        params={"a": a, "b": b, "c": c},
+    )
+
+
 @template("pd_first_exp")
 def _first_exp(rng: random.Random) -> Question:
     """Степінь на експоненту; подекуди змінні міняються ролями.
@@ -451,7 +503,7 @@ def _extremum_test(rng: random.Random) -> Question:
             Part("kind", "3) висновок (0, 1 або 2):", sp.Integer(kind),
                  points=1),
         ],
-        seconds=180,
+        seconds=210,
         params={"a": a, "b": b, "px": px, "A": int(A), "B": int(B),
                 "C": int(C), "delta": int(delta), "kind": kind},
     )
@@ -459,13 +511,14 @@ def _extremum_test(rng: random.Random) -> Question:
 
 @template("pd_extremum_full")
 def _extremum_full(rng: random.Random) -> Question:
-    """Кроки 1, 2 і 6 алгоритму лекції: продиференціювати, знайти стаціонарну
-    точку, обчислити в ній значення функції.
+    """Кроки 1 і 2 алгоритму лекції: продиференціювати і знайти стаціонарну
+    точку – обидві її координати.
 
-    Достатню умову (A, B, C, Delta) питає окремо pd_extremum_test, тож ці два
-    завдання разом покривають увесь алгоритм і ніде не повторюються. Функція
-    тут найпростіша з можливих – одна стаціонарна точка, перехресної похідної
-    немає: рівень «не жестити».
+    Значення функції в точці не питаємо: викладач попросив прибрати цей крок,
+    бо це вже не метод, а арифметика. Достатню умову (A, B, C, Delta) питає
+    окремо pd_extremum_test, тож ці два завдання разом покривають увесь
+    алгоритм і ніде не повторюються. Функція тут найпростіша з можливих –
+    одна стаціонарна точка, перехресної похідної немає: рівень «не жестити».
     """
     a = rng.choice([1, 2, 3])
     b = rng.choice([1, 2, 3])
@@ -475,7 +528,6 @@ def _extremum_full(rng: random.Random) -> Question:
     c, d = 2 * a * x0 * sign, 2 * b * y0 * sign
     e = rng.choice([-5, -3, 3, 5])
     z = sign * (a * _x**2 + b * _y**2) - c * _x - d * _y + e
-    zval = sp.expand(z).subs({_x: x0, _y: y0})
     head = (rf"{_c(a)}x^{{2}} + {_c(b)}y^{{2}}" if sign > 0
             else rf"-{_c(a)}x^{{2}} - {_c(b)}y^{{2}}")
     tex = head + _signed(-c, "x") + _signed(-d, "y") + _signed(e)
@@ -486,16 +538,16 @@ def _extremum_full(rng: random.Random) -> Question:
             + "\n" + r"1) Знайдіть $\dfrac{\partial z}{\partial x}$."
             + "\n2) Прирівнявши обидві частинні похідні до нуля, знайдіть "
             "абсцису $x_0$ стаціонарної точки."
-            + "\n3) Чому дорівнює екстремальне значення функції?"
+            + "\n3) Знайдіть ординату $y_0$ стаціонарної точки."
             + "\n" + _HINT
         ),
         parts=[
             Part("zx", r"1) $z'_x$ =", sp.diff(sp.expand(z), _x), kind="expr",
                  points=1),
             Part("x0", "2) $x_0$ =", sp.Integer(x0), points=1),
-            Part("zval", "3) екстремальне значення $z$ =", zval, points=1),
+            Part("y0", "3) $y_0$ =", sp.Integer(y0), points=1),
         ],
-        seconds=180,
+        seconds=210,
         params={"a": a, "b": b, "sign": sign, "x0": x0, "y0": y0, "e": e},
     )
 
@@ -510,6 +562,9 @@ def _lagrange_linear(rng: random.Random) -> Question:
 
     Множник Лагранжа питаємо першим навмисне: його не дістати з геометрії
     задачі, лише з системи. Хто обійшов метод, на цьому полі й спіткнеться.
+
+    Саме значення z не питаємо – викладач попросив прибрати цей крок. Замість
+    нього друга координата точки: вона теж із системи, а не з арифметики.
     """
     a = rng.choice([1, 2, 3, 4, 5])
     b = rng.choice([1, 2, 3, 4, 5])
@@ -527,15 +582,15 @@ def _lagrange_linear(rng: random.Random) -> Question:
             + rf"{_c(a)}x + {_c(b)}y - {c}" + r"\right)$."
             + "\n" + r"1) Знайдіть множник $\lambda$."
             + "\n2) Знайдіть $x_0$ – абсцису точки умовного екстремуму."
-            + "\n3) Чому дорівнює екстремальне значення $z$?"
+            + "\n3) Знайдіть $y_0$ – ординату цієї точки."
             + "\n" + _HINT_NUM
         ),
         parts=[
             Part("lam", r"1) $\lambda$ =", sp.Integer(lam), points=1),
             Part("x0", "2) $x_0$ =", sp.Integer(x0), points=1),
-            Part("zval", "3) $z$ =", sp.Integer(x0 * x0 + y0 * y0), points=1),
+            Part("y0", "3) $y_0$ =", sp.Integer(y0), points=1),
         ],
-        seconds=190,
+        seconds=220,
         params={"a": a, "b": b, "k": k, "c": c, "x0": x0, "y0": y0, "lam": lam},
     )
 
@@ -574,6 +629,6 @@ def _lagrange_circle(rng: random.Random) -> Question:
                      else None),
                  carry_from=("zmax",)),
         ],
-        seconds=190,
+        seconds=220,
         params={"a": a, "b": b, "m": m, "r2": r2, "zmax": zmax},
     )

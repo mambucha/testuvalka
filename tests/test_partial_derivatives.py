@@ -22,13 +22,17 @@ from app.config import SECRET
 # Літеральний "\n" замість переносу; \ne, \nu – валідні команди LaTeX.
 _BAD_NEWLINE = re.compile(r"\\n(?![a-zA-Z])")
 
-FIRST = ["pd_first_poly", "pd_first_log", "pd_first_exp"]
+FIRST = ["pd_first_poly", "pd_first_log", "pd_first_exp",
+         "pd_first_fraction"]
 DIFFERENTIAL = ["pd_differential"]
 SECOND = ["pd_second_poly", "pd_second_mixed", "pd_identity"]
-DOMAIN = ["pd_domain"]
 EXTREMUM = ["pd_extremum_full", "pd_extremum_test"]
 LAGRANGE = ["pd_lagrange_linear", "pd_lagrange_circle"]
-KEYS = FIRST + DIFFERENTIAL + SECOND + DOMAIN + EXTREMUM + LAGRANGE
+KEYS = FIRST + DIFFERENTIAL + SECOND + EXTREMUM + LAGRANGE
+
+# Область визначення лишилася в банку модуля, але з тесту її прибрано на
+# прохання викладача. Математику все одно перевіряємо - шаблон робочий.
+SPARE = ["pd_domain"]
 
 _x, _y = sp.symbols("x y")
 
@@ -51,10 +55,9 @@ def _same(got, expected):
 
 def test_twelve_types_covering_the_whole_lecture():
     assert len(KEYS) == len(set(KEYS)) == 12
-    assert len(FIRST) == 3, "частинні похідні першого порядку"
+    assert len(FIRST) == 4, "частинні похідні першого порядку"
     assert len(DIFFERENTIAL) == 1, "повний диференціал"
     assert len(SECOND) == 3, "похідні другого порядку й тотожність"
-    assert len(DOMAIN) == 1, "область визначення"
     assert len(EXTREMUM) == 2, "екстремум"
     assert len(LAGRANGE) == 2, "умовний екстремум"
 
@@ -161,17 +164,37 @@ def test_hint_matches_the_kind_of_fields():
         assert "Відповід" in q.statement, key
 
 
+def test_extremum_tasks_do_not_ask_for_the_value_of_z():
+    """Викладач попросив прибрати крок «обчисліть значення z».
+
+    У задачах на екстремум і на Лагранжа це вже не метод, а арифметика:
+    координати точки показують володіння методом, а підстановка – ні.
+    Виняток – pd_lagrange_circle, де найбільше й найменше значення і є
+    питанням задачі (ПЗ 9, завдання 3), а не причіпним кроком.
+    """
+    for key in EXTREMUM + ["pd_lagrange_linear"]:
+        for i in range(8):
+            q = _build(key, i)
+            assert "zval" not in {p.key for p in q.parts}, key
+            for word in ("екстремальне значення", "значення $z$",
+                         "значення функції"):
+                assert word not in q.statement, (key, word)
+
+
 def test_timings_are_generous():
     """«Дуже не жестити» – часу з запасом, але тест лишається в межах пари."""
     total = 0
     for key in KEYS:
         q = _build(key, 1)
-        assert 140 <= q.seconds <= 190, (key, q.seconds)
+        assert 140 <= q.seconds <= 220, (key, q.seconds)
         total += q.seconds
-    assert 1900 <= total <= 2200, total           # ~32–36 хв на 12 питань
-    # Лагранж – найдовше: там ще й систему складати
+    assert 2050 <= total <= 2300, total           # ~34–38 хв на 12 питань
+    # Викладач попросив додати часу екстремуму й Лагранжу: там ще й систему
+    # складати, та й висновок треба обґрунтувати.
+    for key in EXTREMUM:
+        assert _build(key, 1).seconds >= 210, key
     for key in LAGRANGE:
-        assert _build(key, 1).seconds >= 190, key
+        assert _build(key, 1).seconds >= 220, key
 
 
 def test_many_variants_per_template():
@@ -220,6 +243,19 @@ def test_first_log_math():
         assert _same(a["zy"], sp.diff(z, _y)), (i, a["zy"])
         # складена: у знаменнику має лишитися весь внутрішній вираз
         assert a["zx"].has(_x) and a["zx"].has(_y), (i, a["zx"])
+
+
+def test_first_fraction_math():
+    for i in range(30):
+        q = _build("pd_first_fraction", i)
+        p, a = q.params, _a(q)
+        z = (p["a"] * _x + p["b"] * _y) / (_x + p["c"] * _y)
+        assert _same(a["zx"], sp.diff(z, _x)), (i, a["zx"])
+        assert _same(a["zy"], sp.diff(z, _y)), (i, a["zy"])
+        assert _same(a["zxx"], sp.diff(z, _x, 2)), (i, a["zxx"])
+        # a*c = b зробило б функцію сталою, а всі три похідні нулями
+        assert p["a"] * p["c"] != p["b"], i
+        assert a["zx"] != 0 and a["zy"] != 0 and a["zxx"] != 0, i
 
 
 def test_first_exp_math():
@@ -337,7 +373,10 @@ def test_extremum_full_math():
         assert sp.diff(z, _x).subs({_x: x0, _y: y0}) == 0, i
         assert sp.diff(z, _y).subs({_x: x0, _y: y0}) == 0, i
         assert a["x0"] == x0, (i, a["x0"])
-        assert _same(a["zval"], sp.expand(z).subs({_x: x0, _y: y0})), i
+        assert a["y0"] == y0, (i, a["y0"])
+        # значення z не питаємо - викладач попросив прибрати цей крок
+        assert "zval" not in a, i
+        assert "значення" not in q.statement, (i, q.statement)
         # екстремум справжній: Delta = AC - B^2 > 0
         A = sp.diff(z, _x, 2)
         B = sp.diff(z, _x, _y)
@@ -391,7 +430,9 @@ def test_lagrange_linear_math():
         got = sol[0]
         assert a["lam"] == got[lam], (i, a["lam"], got[lam])
         assert a["x0"] == got[_x], (i, a["x0"], got[_x])
-        assert a["zval"] == got[_x] ** 2 + got[_y] ** 2, (i, a["zval"])
+        assert a["y0"] == got[_y], (i, a["y0"], got[_y])
+        # значення z не питаємо - викладач попросив прибрати цей крок
+        assert "zval" not in a, i
         # точка лежить на прямій зв'язку
         assert p["a"] * got[_x] + p["b"] * got[_y] == p["c"], i
 
