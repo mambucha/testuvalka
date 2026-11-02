@@ -192,3 +192,163 @@ def coordinate_plane(lines=None, points=None, parabolas=None, circles=None,
         + "".join(el)
         + "</svg>"
     )
+
+
+# ==========================================================================
+# Тригонометричне (одиничне) коло
+# ==========================================================================
+#
+# Окреме полотно, бо на сітці coordinate_plane радіус 1 вийшов би 25 пікселів –
+# на такому колі не роздивитися ні точки, ні підписів.
+
+_CIRCLE_R = 108               # радіус кола в пікселях
+_CIRCLE_PAD = 46              # поле під підписи кутів ззовні
+_CIRCLE_C = _CIRCLE_R + _CIRCLE_PAD
+_CIRCLE_SIZE = 2 * _CIRCLE_C
+
+# «Гарні» кути: кратні pi/6 і pi/4. Саме їх заповнює студент у таблиці значень
+# (ДЗ заняття 9), тож інші на колі й не потрібні.
+_NICE = [(0, 1), (1, 6), (1, 4), (1, 3), (1, 2), (2, 3), (3, 4), (5, 6),
+         (1, 1), (7, 6), (5, 4), (4, 3), (3, 2), (5, 3), (7, 4), (11, 6)]
+
+
+def nice_angles() -> list[tuple[int, int]]:
+    """Кути кола як пари (чисельник, знаменник) у частках pi, від 0 до 2pi."""
+    return list(_NICE)
+
+
+def angle_tex(num: int, den: int) -> str:
+    """LaTeX кута: (0,1) -> 0, (1,1) -> \\pi, (5,6) -> \\dfrac{5\\pi}{6}."""
+    if num == 0:
+        return "0"
+    top = r"\pi" if num == 1 else rf"{num}\pi"
+    return top if den == 1 else rf"\dfrac{{{top}}}{{{den}}}"
+
+
+def angle_input(num: int, den: int) -> str:
+    """Той самий кут у вигляді, який розуміє парсер відповідей."""
+    if num == 0:
+        return "0"
+    top = "pi" if num == 1 else f"{num}*pi"
+    return top if den == 1 else f"{top}/{den}"
+
+
+def _cx(t: float) -> float:
+    import math
+    return round(_CIRCLE_C + _CIRCLE_R * math.cos(t), 1)
+
+
+def _cy(t: float) -> float:
+    import math
+    return round(_CIRCLE_C - _CIRCLE_R * math.sin(t), 1)
+
+
+def unit_circle(marked=None, pickable: bool = False,
+                show_labels: bool = True, radius_to=None) -> str:
+    """Тригонометричне коло.
+
+    marked:    кути (num, den) у частках pi, які позначаємо червоною точкою
+               з підписом P – для задач «прочитай координати точки».
+    pickable:  чи робити точки клікабельними. Тоді кожна дістає data-ins із
+               записом кута для парсера, і фронтенд вписує його в поле за
+               клацанням – так само, як це робить екранна клавіатура.
+               Жодного вводу ззовні в SVG не потрапляє: усе з чисел задачі.
+    show_labels: підписувати кути ззовні кола.
+    radius_to: кут (num, den), до якого провести радіус і намалювати дугу
+               повороту – щоб було видно, звідки й куди крутимо.
+    """
+    import math
+
+    marked = marked or []
+    el: list[str] = []
+    c, r = _CIRCLE_C, _CIRCLE_R
+
+    # --- осі ---
+    el.append(f'<line x1="{_CIRCLE_PAD - 18}" y1="{c}" x2="{_CIRCLE_SIZE - _CIRCLE_PAD + 18}" '
+              f'y2="{c}" stroke="#3a4553" stroke-width="1.6"/>')
+    el.append(f'<line x1="{c}" y1="{_CIRCLE_SIZE - _CIRCLE_PAD + 18}" x2="{c}" '
+              f'y2="{_CIRCLE_PAD - 18}" stroke="#3a4553" stroke-width="1.6"/>')
+    el.append(f'<polygon points="{_CIRCLE_SIZE - _CIRCLE_PAD + 18},{c} '
+              f'{_CIRCLE_SIZE - _CIRCLE_PAD + 9},{c - 4} '
+              f'{_CIRCLE_SIZE - _CIRCLE_PAD + 9},{c + 4}" fill="#3a4553"/>')
+    el.append(f'<polygon points="{c},{_CIRCLE_PAD - 18} {c - 4},{_CIRCLE_PAD - 9} '
+              f'{c + 4},{_CIRCLE_PAD - 9}" fill="#3a4553"/>')
+    el.append(f'<text x="{_CIRCLE_SIZE - _CIRCLE_PAD + 16}" y="{c + 18}" font-size="13" '
+              'fill="#3a4553" text-anchor="end">x</text>')
+    el.append(f'<text x="{c - 16}" y="{_CIRCLE_PAD - 20}" font-size="13" '
+              'fill="#3a4553" text-anchor="end">y</text>')
+
+    # --- саме коло ---
+    el.append(f'<circle cx="{c}" cy="{c}" r="{r}" fill="none" stroke="#2f6df6" '
+              'stroke-width="2.2"/>')
+
+    # --- радіус і дуга повороту ---
+    if radius_to is not None:
+        t = math.pi * radius_to[0] / radius_to[1]
+        el.append(f'<line x1="{c}" y1="{c}" x2="{_cx(t)}" y2="{_cy(t)}" '
+                  'stroke="#d23f3f" stroke-width="2"/>')
+        big = 1 if t > math.pi else 0
+        el.append(f'<path d="M {c + 34} {c} A 34 34 0 {big} 0 '
+                  f'{round(c + 34 * math.cos(t), 1)} {round(c - 34 * math.sin(t), 1)}" '
+                  'fill="none" stroke="#d23f3f" stroke-width="1.4" stroke-dasharray="3 2"/>')
+
+    # --- точки кола ---
+    for num, den in _NICE:
+        t = math.pi * num / den
+        x, y = _cx(t), _cy(t)
+        is_marked = (num, den) in marked
+        if pickable:
+            # Клікабельна зона більша за саму точку: на телефоні в 4 пікселі
+            # пальцем не влучиш.
+            el.append(
+                f'<circle class="uc-dot" data-ins="{angle_input(num, den)}" '
+                f'cx="{x}" cy="{y}" r="13" fill="#2f6df6" fill-opacity="0.001" '
+                'style="cursor:pointer"><title>'
+                f'{angle_input(num, den)}</title></circle>'
+            )
+        el.append(
+            f'<circle cx="{x}" cy="{y}" r="{4.6 if is_marked else 3.2}" '
+            f'fill="{"#d23f3f" if is_marked else "#2f6df6"}" '
+            f'fill-opacity="{1 if is_marked else 0.55}" pointer-events="none"/>'
+        )
+        if is_marked:
+            # Підпис ставимо ВСЕРЕДИНІ кола, збоку від радіуса. Ззовні він
+            # накладався б на підпис кута, а просто на радіусі – на сам
+            # радіус.
+            rr, off = r - 17, 12
+            mx = rr * math.cos(t) - off * math.sin(t)
+            my = rr * math.sin(t) + off * math.cos(t)
+            el.append(f'<text x="{round(c + mx, 1)}" y="{round(c - my + 4, 1)}" '
+                      'font-size="13" fill="#d23f3f" font-weight="600" '
+                      'text-anchor="middle" pointer-events="none">P</text>')
+        if show_labels:
+            lx = c + (r + 20) * math.cos(t)
+            ly = c - (r + 20) * math.sin(t) + 4
+            # Чотири кути лежать просто на осях, де вже є стрілка й буква осі.
+            # Якщо не зсунути, підписи 0, pi, pi/2 і 3pi/2 накладаються на них.
+            if abs(math.sin(t)) < 0.01:                  # на осі Ox
+                ly -= 13
+            elif abs(math.cos(t)) < 0.01:                # на осі Oy
+                lx += 17
+            el.append(
+                f'<text x="{round(lx, 1)}" y="{round(ly, 1)}" font-size="9.5" '
+                'fill="#6b7684" text-anchor="middle" pointer-events="none">'
+                f'{_label_plain(num, den)}</text>'
+            )
+
+    return (
+        f'<svg viewBox="0 0 {_CIRCLE_SIZE} {_CIRCLE_SIZE}" width="{_CIRCLE_SIZE}" '
+        'style="max-width:100%;height:auto;background:#fff;border-radius:8px" '
+        f'class="unit-circle{" pickable" if pickable else ""}" '
+        'xmlns="http://www.w3.org/2000/svg" role="img">'
+        + "".join(el)
+        + "</svg>"
+    )
+
+
+def _label_plain(num: int, den: int) -> str:
+    """Підпис кута звичайним текстом – усередині SVG KaTeX не працює."""
+    if num == 0:
+        return "0"
+    top = "π" if num == 1 else f"{num}π"
+    return top if den == 1 else f"{top}/{den}"

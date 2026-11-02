@@ -38,6 +38,13 @@
   .statement { font-size:1.15rem; margin:14px 0 6px; }
   #figure { margin:8px 0 4px; text-align:center; }
   #figure:empty { display:none; }
+  /* Тригонометричне коло як помічник вводу: точки на ньому клікабельні.
+     Сама точка невидима (fill-opacity майже нуль) і лише розширює зону
+     влучання пальцем; вибрана підсвічується. CSS перебиває presentation-
+     атрибут SVG, тож !important не потрібен. */
+  .unit-circle.pickable { touch-action:manipulation; }
+  .unit-circle .uc-dot:hover { fill-opacity:0.35; }
+  .unit-circle .uc-dot.picked { fill-opacity:0.85; }
   .math-preview { min-height:1.5em; margin-top:6px; color:var(--muted);
                   font-size:1.1rem; }
   .math-preview.show::before { content:"= "; color:var(--muted); }
@@ -593,6 +600,21 @@ function kbdFraction(){
   inp.dispatchEvent(new Event("input"));
   state.lastInput = inp;
 }
+// Вибір кута на тригонометричному колі. Пишемо в ПЕРШЕ поле питання, а не в
+// останнє активне: саме це обіцяє умова, і так поведінка передбачувана.
+// Значення ЗАМІНЮємо, а не дописуємо – друге клацання виправляє перше.
+function circlePick(dot){
+  const inp = document.querySelector("#parts input");
+  if (!inp){ return; }
+  const svg = dot.ownerSVGElement;
+  if (svg){ svg.querySelectorAll(".uc-dot.picked").forEach((d) => d.classList.remove("picked")); }
+  dot.classList.add("picked");
+  inp.value = dot.dataset.ins;
+  inp.focus();
+  inp.setSelectionRange(inp.value.length, inp.value.length);
+  inp.dispatchEvent(new Event("input"));
+  state.lastInput = inp;
+}
 function kbdBackspace(){
   const inp = kbdTarget();
   if (!inp){ return; }
@@ -774,6 +796,24 @@ function init(){
     if (btn.dataset.ins != null){
       kbdInsert(btn.dataset.ins, parseInt(btn.dataset.caret || "0", 10));
     }
+  });
+
+  // Тригонометричне коло: клац по точці вписує кут у ПЕРШЕ поле – рівно те,
+  // що обіцяє умова. Рисунок приходить із сервера, зібраний із чисел задачі,
+  // тож data-ins тут не може містити нічого стороннього.
+  const figure = $("figure");
+  // Той самий захист, що й у клавіатури: без preventDefault на дотику поле
+  // втрачає фокус, системна клавіатура закривається й тягне за собою
+  // window.blur, а це перевидає питання посеред розв'язування.
+  ["pointerdown", "mousedown"].forEach((t) => {
+    figure.addEventListener(t, (e) => {
+      if (e.target.closest(".uc-dot")) e.preventDefault();
+    });
+  });
+  figure.addEventListener("click", (e) => {
+    const dot = e.target.closest(".uc-dot");
+    if (!dot || dot.dataset.ins == null) return;
+    circlePick(dot);
   });
 
   // Відновлення сесії після перезавантаження.

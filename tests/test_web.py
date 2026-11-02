@@ -110,6 +110,27 @@ def test_fraction_input_present(client):
     assert "\\\\dfrac{" in html
 
 
+def test_clickable_unit_circle_is_wired(client):
+    """Тригонометричне коло як помічник вводу: клац по точці вписує кут.
+
+    Рисунок приходить із сервера, зібраний із чисел задачі, тож обробник
+    лише читає data-ins. Головне тут – той самий захист, що й у клавіатури:
+    без preventDefault на дотику поле втрачає фокус, системна клавіатура
+    закривається й тягне за собою window.blur, а це перевидає питання
+    посеред розв'язування. Саме це студенти колись і описували як
+    «клавіатура міняє умову».
+    """
+    html = client.get("/").text
+    assert "function circlePick" in html
+    assert '.uc-dot' in html                   # делегування по класу точки
+    assert 'figure.addEventListener(t, (e) => {' in html
+    assert '["pointerdown", "mousedown"].forEach' in html
+    # пишемо в ПЕРШЕ поле – рівно те, що обіцяє умова задачі
+    assert 'document.querySelector("#parts input")' in html
+    # вибрану точку видно
+    assert ".uc-dot.picked" in html
+
+
 def test_live_math_preview_present(client):
     """Живий математичний прев'ю введення (учень бачить формулу, не сирий текст)."""
     html = client.get("/").text
