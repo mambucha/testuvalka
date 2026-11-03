@@ -82,6 +82,17 @@ class Part:
     carry: Callable[[dict[str, Any]], Any] | None = None
     carry_from: tuple[str, ...] = ()
 
+    # Заборона на ВИГЛЯД відповіді, а не на її значення.
+    # Є питання, де «дорівнює еталону» ще не означає «виконано»: спростити
+    # вираз або звести його до функції кута x – це вимога до вигляду. Рушій
+    # звіряє через simplify(got - expected) == 0, тож переписана назад умова
+    # проходить як правильна, хоч студент не зробив нічого. Шаблон може
+    # додати сюди свою перевірку.
+    # Сигнатура: (value: sympy-вираз, raw: рядок) -> причина відмови | None
+    # Сирий рядок потрібен тому, що sympy згортає вираз уже на розборі:
+    # cos(pi + x) стає -cos(x) ще до звіряння, і у виразі сліду не лишається.
+    reject: Callable[[Any, str], str | None] | None = None
+
 
 @dataclass
 class Question:
@@ -406,6 +417,12 @@ def grade(question: Question, submitted: dict[str, str]) -> dict:
 
         try:
             value = parse_answer(raw, part.kind)
+            # Спершу вигляд, потім значення: переписана назад умова формально
+            # дорівнює еталону, але завдання не виконане. У перенесення
+            # помилки відкинуте теж не потрапляє – воно не відповідь.
+            refused = part.reject(value, raw) if part.reject else None
+            if refused:
+                raise BadInput(refused)
             parsed[part.key] = value
             ok = _same(part, value, expected)
         except BadInput as exc:

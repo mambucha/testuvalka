@@ -132,6 +132,60 @@ def _reciprocal(value):
     return sp.simplify(1 / v)
 
 
+# -------------------------------------------------------------------------
+#  ЗАБОРОНИ НА ВИГЛЯД ВІДПОВІДІ
+#
+#  «Спростіть» і «зведіть» – це вимоги до вигляду, а не до значення. Рушій же
+#  звіряє через simplify(got - expected) == 0, тож переписана назад умова
+#  проходить як правильна: вона ж тотожно дорівнює еталону. Заміряно – таке
+#  копіювання брало 100% цих полів. Нижче те, що відрізняє виконане завдання
+#  від переписаного.
+# -------------------------------------------------------------------------
+
+def _function_of_x_only(value, raw: str):
+    """Відповідь на «зведіть до функції кута x» мусить бути функцією самого x.
+
+    sin(pi/2 + x) дорівнює cos x, але завдання полягало саме в тому, щоб це
+    побачити. Дивимося на сирий рядок, бо sympy згортає такий вираз уже на
+    розборі – у готовому виразі pi вже немає. Жодна правильна відповідь тут
+    pi не містить: усі вони виду +-sin x, +-cos x, +-tg x, +-ctg x.
+    """
+    if "pi" in raw.lower():
+        return ("Зведення не виконано: у відповіді має лишитися функція "
+                "кута x, без pi.")
+    try:
+        atoms = value.atoms(sp.Function)
+    except AttributeError:
+        return None
+    for f in atoms:
+        if f.args and f.args[0] != _x:
+            return ("Зведення не виконано: під знаком функції має стояти "
+                    "просто x.")
+    return None
+
+
+def _not_longer_than(expected, slack: int = 0):
+    """Відповідь не може бути громіздкішою за спрощену.
+
+    Міра – кількість дій у виразі. Переписана умова має їх помітно більше за
+    відповідь, тож поріг розводить ці два випадки надійно. Запас дозволяє
+    рівноцінний запис (розкриті дужки замість винесеного множника).
+    """
+    limit = sp.count_ops(expected) + slack
+
+    def check(value, _raw=""):
+        try:
+            ops = sp.count_ops(value)
+        except Exception:  # noqa: BLE001
+            return None
+        if ops > limit:
+            return ("Вираз не спрощено: у відповіді забагато дій. "
+                    "Застосуйте тотожність і запишіть коротше.")
+        return None
+
+    return check
+
+
 # =========================================================================
 #  ЗАНЯТТЯ 9. РАДІАНИ, КОЛО, ЗНАКИ
 # =========================================================================
@@ -410,6 +464,13 @@ def _pythagorean(rng: random.Random) -> Question:
 
 # Кістяки на спрощення: (вираз, що питаємо на кроці 1, відповідь кроку 1).
 # Вираз будуємо від множника a, тож результат у кожного студента свій.
+#
+# Два правила добору, обидва проти безплатних балів:
+#   * крок мусить СКОРОЧУВАТИ вираз. Рушій звіряє значення, а не вигляд, тож
+#     переписана назад підформула теж дорівнює еталону; відкидаємо її за
+#     довжиною, а для цього коротшати має завжди;
+#   * увесь вираз не має згортатися в саме лише число. Інакше відповідь – це
+#     множник перед дужками, тобто перше ж число умови.
 def _simplify_shapes():
     s, c = sp.sin(_x), sp.cos(_x)
     tg, ctg = sp.tan(_x), sp.cot(_x)
@@ -418,16 +479,20 @@ def _simplify_shapes():
          (1 - s**2) / c * tg, r"$1-\sin^{2}x$", c**2),
         (r"\dfrac{1-\cos^{2}x}{\sin x}\cdot" + _CTG + r"\,x",
          (1 - c**2) / s * ctg, r"$1-\cos^{2}x$", s**2),
-        (r"\left(\sin x+\cos x\right)^{2}-2\sin x\cos x",
-         (s + c)**2 - 2 * s * c, r"$\left(\sin x+\cos x\right)^{2}$",
-         1 + 2 * s * c),
-        (r"\dfrac{\cos^{2}x}{1-\sin x}-\sin x",
-         c**2 / (1 - s) - s, r"$\dfrac{\cos^{2}x}{1-\sin x}$", 1 + s),
-        (r"\dfrac{1}{\cos^{2}x}-" + _TG + r"^{2}x",
-         1 / c**2 - tg**2, r"$\dfrac{1}{\cos^{2}x}$", 1 + tg**2),
+        (r"\sin x\cdot" + _CTG + r"\,x+\sin^{2}x",
+         s * ctg + s**2, "$\\sin x\\cdot" + _CTG + r"\,x$", c),
+        (r"\dfrac{\cos^{2}x}{1-\sin x}-1",
+         c**2 / (1 - s) - 1, r"$\dfrac{\cos^{2}x}{1-\sin x}$", 1 + s),
         (_TG + r"\,x\cdot" + _CTG + r"\,x+\sin^{2}x",
          tg * ctg + s**2, "$" + _TG + r"\,x\cdot" + _CTG + r"\,x$",
          sp.Integer(1)),
+        (_TG + r"\,x\cdot\cos x+\cos^{2}x",
+         tg * c + c**2, "$" + _TG + r"\,x\cdot\cos x$", s),
+        (r"\left(\dfrac{1}{\cos^{2}x}-" + _TG + r"^{2}x\right)\sin x",
+         (1 / c**2 - tg**2) * s,
+         r"$\dfrac{1}{\cos^{2}x}-" + _TG + r"^{2}x$", sp.Integer(1)),
+        (r"\left(1-\cos^{2}x\right)" + _CTG + r"^{2}x",
+         (1 - c**2) * ctg**2, r"$1-\cos^{2}x$", s**2),
     ]
 
 
@@ -450,8 +515,10 @@ def _simplify(rng: random.Random) -> Question:
             + "\n" + _HINT_EXPR
         ),
         parts=[
-            Part("step", "1) =", step_a, kind="expr", points=1),
-            Part("total", "2) весь вираз =", total, kind="expr", points=1),
+            Part("step", "1) =", step_a, kind="expr", points=1,
+                 reject=_not_longer_than(step_a)),
+            Part("total", "2) весь вираз =", total, kind="expr", points=1,
+                 reject=_not_longer_than(total, slack=1)),
         ],
         seconds=180,
         params={"a": a, "tex": tex},
@@ -503,7 +570,8 @@ def _reduction(rng: random.Random) -> Question:
             Part("quarter", "1) чверть:", sp.Integer(quarter), points=1),
             Part("flip", "2) назва змінюється (1/0):",
                  sp.Integer(1 if flips else 0), points=1),
-            Part("result", "3) результат:", result, kind="expr", points=1),
+            Part("result", "3) результат:", result, kind="expr", points=1,
+                 reject=_function_of_x_only),
         ],
         seconds=200,
         params={"base": [bn, bd], "func": fname, "plus": plus,
@@ -532,8 +600,8 @@ def _reduction_value(rng: random.Random) -> Question:
             r"зведення."
             + "\n" + rf"1) У якій чверті лежить кут ${_deg_tex(deg)}$?"
             + "\n2) Через функцію якого гострого кута зводиться даний? "
-            r"(Наприклад, для $225^\circ = 180^\circ + 45^\circ$ це "
-            r"$45^\circ$.) Запишіть лише число градусів."
+            r"(Наприклад, для $200^\circ = 180^\circ + 20^\circ$ це "
+            r"$20^\circ$.) Запишіть лише число градусів."
             + "\n" + rf"3) Чому дорівнює ${ftex}\,{_deg_tex(deg)}$?"
             + "\n" + _HINT_NUM
         ),
@@ -573,12 +641,18 @@ def _period(rng: random.Random) -> Question:
     inner = rng.choice(["tg", "ctg"])
     itex = _TG if inner == "tg" else _CTG
     a = rng.choice([2, 3, 4, 5])
+    # Вільний доданок потрібен саме в третьому пункті. Без нього найбільше
+    # значення дорівнює множнику перед синусом, тобто першому ж числу умови:
+    # поле бралося переписуванням, не знаючи навіть, що синус не більший за
+    # одиницю. На період доданок не впливає – що й підкреслює пункт 1.
+    b = rng.choice([-3, -2, -1, 1, 2, 3])
+    btex = f"+ {b}" if b > 0 else f"- {-b}"
     return Question(
         key="tr_period",
         statement=(
             rf"1) Знайдіть головний період функції "
             rf"$y = {a}{otex}\left({sp.latex(w1)}x - "
-            rf"{angle_tex(*shift)}\right)$."
+            rf"{angle_tex(*shift)}\right) {btex}$."
             + "\n" + rf"2) Знайдіть головний період функції "
             rf"$y = {itex}\left({sp.latex(w2)}x\right)$."
             + "\n3) Чому дорівнює найбільше значення функції з пункту 1?"
@@ -589,10 +663,11 @@ def _period(rng: random.Random) -> Question:
                  points=1),
             Part("t2", "2) період:", sp.simplify(sp.pi / w2), kind="expr",
                  points=1),
-            Part("amp", "3) найбільше значення:", sp.Integer(a), points=1),
+            Part("maxv", "3) найбільше значення:", sp.Integer(a + b),
+                 points=1),
         ],
         seconds=180,
-        params={"w1": str(w1), "w2": str(w2), "a": a, "outer": outer,
+        params={"w1": str(w1), "w2": str(w2), "a": a, "b": b, "outer": outer,
                 "inner": inner, "shift": list(shift)},
     )
 
@@ -672,7 +747,21 @@ def _compare_pairs():
         # розуміння, а віру в те, що 80 менше за 85.
         if abs(diff) < 1e-9 or abs(diff) > 0.05:
             kept.append((f, p, q))
-    return kept
+    # Вирівнюємо за відповіддю. Сімей, що дають «рівні», більше, ніж решти,
+    # тож без цього нуль випадав мало не вдвічі частіше за чесну третину – і
+    # сталий нуль коштував пів задачі. Ріжемо кожну групу до найменшої;
+    # порядок сталий, бо вибір варіанта робить уже сід студента.
+    groups: dict[int, list] = {-1: [], 0: [], 1: []}
+    for f, p, q in kept:
+        fn = math.sin if f == "sin" else math.cos
+        diff = fn(math.radians(p)) - fn(math.radians(q))
+        groups[0 if abs(diff) < 1e-9 else (1 if diff > 0 else -1)].append(
+            (f, p, q))
+    size = min(len(g) for g in groups.values())
+    out = []
+    for verdict in (-1, 0, 1):
+        out.extend(sorted(groups[verdict])[:size])
+    return out
 
 
 @template("tr_compare")
@@ -746,37 +835,44 @@ def _compare(rng: random.Random) -> Question:
 
 @template("tr_properties")
 def _properties(rng: random.Random) -> Question:
-    """Властивості функції: парність, нулі, множина значень (заняття 11).
+    """Властивості функції: парність і множина значень (заняття 11).
 
     Парність тут не вивчається напам'ять: множник A і коефіцієнт біля x її
     не змінюють, тож відповідь залежить лише від того, синус це чи косинус.
-    А найменший додатний нуль залежить уже від коефіцієнта.
+    Піднятий графік до того ж забирає непарність – парність лишається.
+
+    Вільний доданок B – не прикраса. Поки функція була просто A*cos, її
+    найбільше значення дорівнювало A, тобто першому ж числу умови: поле
+    бралося переписуванням, навіть не знаючи, що косинус не більший за
+    одиницю. З доданком обидва краї доводиться рахувати.
     """
     a = rng.choice([2, 3, 4, 5, 6])
+    b = rng.choice([-4, -3, -2, -1, 1, 2, 3, 4])
     use_cos = rng.random() < 0.5
-    k = rng.choice([2, 4, 6]) if use_cos else rng.choice([1, 2, 3, 4, 5])
+    k = rng.choice([2, 3, 4, 5, 6])
     ftex = r"\cos" if use_cos else r"\sin"
-    zero = sp.Rational(k, 2) if use_cos else sp.Integer(k)
     neg = rng.random() < 0.5                          # мінус перед A
     sign = -1 if neg else 1
     head = rf"-{a}" if neg else f"{a}"
+    btex = f"+ {b}" if b > 0 else f"- {-b}"
     return Question(
         key="tr_properties",
         statement=(
-            rf"Дано функцію $y = {head}{ftex}\dfrac{{\pi x}}{{{k}}}$."
-            + "\n1) Функція парна чи непарна? Запишіть 1 – парна, "
-            "0 – непарна."
-            + "\n2) Чому дорівнює найменший додатний нуль функції?"
-            + "\n3) Чому дорівнює найбільше значення функції?"
+            rf"Дано функцію $y = {head}{ftex}\dfrac{{\pi x}}{{{k}}} {btex}$."
+            + "\n1) Чи є функція парною? Запишіть 1 – парна, 0 – не парна."
+            + "\n2) Чому дорівнює найбільше значення функції?"
+            + "\n3) Чому дорівнює найменше значення функції?"
             + "\n" + _HINT_NUM
         ),
         parts=[
-            Part("parity", "1) парність (1/0):",
+            Part("parity", "1) парна (1/0):",
                  sp.Integer(1 if use_cos else 0), points=1),
-            Part("zero", "2) найменший додатний нуль:", zero, points=1),
-            Part("max", "3) найбільше значення:", sp.Integer(a), points=1),
+            Part("maxv", "2) найбільше значення:", sp.Integer(a + b),
+                 points=1),
+            Part("minv", "3) найменше значення:", sp.Integer(b - a),
+                 points=1),
         ],
         seconds=180,
-        params={"a": a, "k": k, "use_cos": use_cos, "neg": neg,
+        params={"a": a, "b": b, "k": k, "use_cos": use_cos, "neg": neg,
                 "sign": sign},
     )

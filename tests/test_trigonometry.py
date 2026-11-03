@@ -442,7 +442,10 @@ def test_period_math():
         w1, w2 = sp.sympify(p["w1"]), sp.sympify(p["w2"])
         assert _same(a["t1"], 2 * sp.pi / w1), (i, a["t1"])
         assert _same(a["t2"], sp.pi / w2), (i, a["t2"])
-        assert a["amp"] == p["a"], i
+        # найбільше значення A*sin(...) + B дорівнює A + B, а не самому A:
+        # інакше поле бралося переписуванням першого ж числа умови
+        assert a["maxv"] == p["a"] + p["b"], (i, p)
+        assert p["b"] != 0, i
         # зсув в умові є, але на період не впливає – саме це й перевіряємо
         assert r"-" in q.statement, i
 
@@ -507,6 +510,64 @@ def test_compare_uses_all_three_verdicts():
         assert got.count(v) >= 20, (v, got.count(v))
 
 
+def test_copying_the_statement_back_is_refused():
+    """Найдорожча знахідка аудиту.
+
+    «Спростіть» і «зведіть» – вимоги до ВИГЛЯДУ відповіді, а рушій звіряє
+    значення: simplify(got - expected) == 0. Переписана назад умова тотожно
+    дорівнює еталону, тож бралася як правильна – заміряно 100% цих полів у
+    tr_reduction і tr_simplify. Тут замикаємо обидва боки: переписане не
+    зараховується, чесне зараховується.
+    """
+    from app.bank.trigonometry import _simplify_shapes
+    shapes = {tex: (expr, step_a) for tex, expr, _q, step_a in _simplify_shapes()}
+
+    def score_of(q, sub, field):
+        got = engine.grade(q, sub)["parts"]
+        return [d for d in got if d["part"] == field][0]["score"]
+
+    for i in range(25):
+        q = _build("tr_reduction", i)
+        p = q.params
+        bn, bd = p["base"]
+        copy = f"{p['func']}({bn}*pi/{bd} {'+' if p['plus'] else '-'} x)"
+        sub = {"quarter": "", "flip": "", "result": copy}
+        assert score_of(q, sub, "result") == 0, (i, copy)
+        honest = {"quarter": "", "flip": "", "result": str(q.parts[2].answer)}
+        assert score_of(q, honest, "result") == 1, (i, q.parts[2].answer)
+
+    for i in range(25):
+        q = _build("tr_simplify", i)
+        expr, step_a = shapes[q.params["tex"]]
+        whole = str(q.params["a"] * expr)
+        assert score_of(q, {"step": "", "total": whole}, "total") == 0, i
+        assert score_of(q, {"step": "", "total": str(q.parts[1].answer)},
+                        "total") == 1, i
+        # рівноцінний запис із розкритими дужками лишається правильним
+        alt = str(sp.expand(q.parts[1].answer))
+        assert score_of(q, {"step": "", "total": alt}, "total") == 1, (i, alt)
+        assert score_of(q, {"step": str(step_a), "total": ""},
+                        "step") == 1, i
+
+
+def test_simplify_never_collapses_to_the_leading_number():
+    """Якщо дужка згортається в одиницю, відповідь – це множник перед нею,
+    тобто перше ж число умови. Жоден кістяк так згортатися не має."""
+    from app.bank.trigonometry import _simplify_shapes
+    for tex, expr, _q, _a in _simplify_shapes():
+        total = sp.simplify(3 * expr)
+        assert total.free_symbols, tex
+        assert total.has(sp.sin, sp.cos, sp.tan, sp.cot), tex
+
+
+def test_simplify_step_always_gets_shorter():
+    """Крок відкидаємо за довжиною, тож спрощення мусить скорочувати вираз –
+    інакше переписану підформулу не відрізнити від виконаного кроку."""
+    from app.bank.trigonometry import _simplify_shapes
+    for tex, expr, _q, step_a in _simplify_shapes():
+        assert sp.count_ops(step_a) <= 5, (tex, step_a)
+
+
 def test_compare_reduction_angle_is_never_acute():
     """Пункт 3 не має роздаватися безплатно.
 
@@ -537,30 +598,37 @@ def test_properties_math():
         q = _build("tr_properties", i)
         p, a = q.params, _a(q)
         fn = sp.cos if p["use_cos"] else sp.sin
-        expr = p["sign"] * p["a"] * fn(sp.pi * _x / p["k"])
+        expr = p["sign"] * p["a"] * fn(sp.pi * _x / p["k"]) + p["b"]
         # парність перевіряємо підстановкою -x, а не за назвою функції
         even = sp.simplify(expr.subs(_x, -_x) - expr) == 0
         assert bool(a["parity"]) == even, (i, p)
-        # нуль справді нуль, і менших додатних нулів немає
-        assert sp.simplify(expr.subs(_x, a["zero"])) == 0, (i, a["zero"])
-        step = sp.Rational(1, 12)
-        probe = step
-        while probe < sp.Rational(a["zero"]):
-            assert sp.simplify(expr.subs(_x, probe)) != 0, (i, probe)
-            probe += step
-        assert a["max"] == p["a"], (i, a["max"])
+        # краї множини значень беремо чисельно з самої функції
+        probes = [expr.subs(_x, sp.Rational(n, 12)) for n in range(-200, 201)]
+        vals = [float(sp.N(v)) for v in probes]
+        assert abs(max(vals) - float(a["maxv"])) < 1e-6, (i, a["maxv"], p)
+        assert abs(min(vals) - float(a["minv"])) < 1e-6, (i, a["minv"], p)
 
 
-def test_properties_minus_does_not_change_the_maximum():
-    """Мінус перед амплітудою перевертає графік, але найбільше значення
-    лишається |A| – зручна пастка, що ловить механічне «A зі знаком»."""
+def test_properties_minus_does_not_change_the_range():
+    """Мінус перед амплітудою перевертає графік, але краї лишаються
+    A+B і B-A – пастка на механічне «A зі знаком»."""
     seen_neg = False
     for i in range(30):
         q = _build("tr_properties", i)
         p, a = q.params, _a(q)
         seen_neg = seen_neg or p["neg"]
-        assert a["max"] == p["a"] > 0, (i, p)
+        assert a["maxv"] == p["a"] + p["b"], (i, p)
+        assert a["minv"] == p["b"] - p["a"], (i, p)
     assert seen_neg, "варіант з мінусом мусить траплятися"
+
+
+def test_properties_shift_is_never_zero():
+    """Без вільного доданка найбільше значення дорівнює множнику перед
+    косинусом – тобто першому ж числу умови. Поле бралося б переписуванням."""
+    for i in range(40):
+        p = _build("tr_properties", i).params
+        assert p["b"] != 0, i
+        assert p["a"] + p["b"] != p["a"], i
 
 
 # =======================================================================
