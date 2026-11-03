@@ -488,7 +488,7 @@ def test_compare_math():
         # третій пункт - гострий кут зведення, а не код
         assert 0 < a["ref"] <= 90, (i, a["ref"])
         fn2 = sp.sin if p["f1"] == "sin" else sp.cos
-        assert sp.simplify(abs(fn2(sp.rad(p["b1"])))
+        assert sp.simplify(abs(fn2(sp.rad(p["target"])))
                            - abs(fn2(sp.rad(int(a["ref"]))))) == 0, (i, p)
         # порівняння не має впиратися в похибку округлення
         assert abs(d1) > 0.05 or a["c1"] == 0, (i, d1, p)
@@ -505,6 +505,22 @@ def test_compare_uses_all_three_verdicts():
     assert set(got) == {-1, 0, 1}, sorted(set(got))
     for v in (-1, 0, 1):
         assert got.count(v) >= 20, (v, got.count(v))
+
+
+def test_compare_reduction_angle_is_never_acute():
+    """Пункт 3 не має роздаватися безплатно.
+
+    У гострого кута кут зведення дорівнює йому самому, тож питати про
+    гострий – це просто попросити переписати число з умови. Беремо лише
+    негострі, і відповідь мусить відрізнятися від самого кута.
+    """
+    for i in range(60):
+        q = _build("tr_compare", i)
+        p, a = q.params, _a(q)
+        assert p["target"] > 90, (i, p["target"])
+        assert a["ref"] != p["target"], (i, p)
+        # питання в умові – саме про цей кут
+        assert f"{p['target']}^\\circ" in q.statement, (i, p["target"])
 
 
 def test_compare_values_are_not_table_ones():
