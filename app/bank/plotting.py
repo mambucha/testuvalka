@@ -352,3 +352,105 @@ def _label_plain(num: int, den: int) -> str:
         return "0"
     top = "π" if num == 1 else f"{num}π"
     return top if den == 1 else f"{top}/{den}"
+
+
+# ==========================================================================
+# Стовпчикова діаграма частот
+# ==========================================================================
+#
+# Потрібна для §15 (математична статистика): у підручнику майже всі дані подано
+# саме діаграмою, а не переліком. Заразом це найсильніший захист від списування
+# в усьому тесті – в УМОВІ чисел немає взагалі, вони тільки на рисунку, тож
+# переписувати з тексту нічого.
+
+_BAR_SLOT = 38                # ширина «місця» під один стовпчик
+_BAR_W = 26                   # ширина самого стовпчика
+_BAR_H = 150                  # висота поля під стовпчики
+_BAR_LEFT = 46                # поле ліворуч під підписи осі Oy
+_BAR_TOP = 26                 # місце під підпис осі Oy над верхньою поділкою
+_BAR_BOTTOM = 42
+
+
+def bar_chart(labels, counts, *, xlabel: str = "", ylabel: str = "") -> str:
+    """Стовпчикова діаграма: під кожним значенням стовпчик висотою в його частоту.
+
+    labels: підписи під стовпчиками (числа або короткі рядки на кшталт XL);
+    counts: висоти стовпчиків (цілі невід'ємні);
+    xlabel / ylabel: підписи осей.
+
+    Частоти підписані над стовпчиками, як у Мерзляка (рис. 15.5, 15.7, 15.8):
+    завдання тут – обчислити показники вибірки, а не вгадати висоту на око.
+    Нульовий стовпчик не малюємо, але підпис значення лишаємо – інакше
+    зникало б саме те значення, якого у вибірці немає.
+    """
+    counts = [int(c) for c in counts]
+    top = max(counts) if counts else 1
+    step = 1 if top <= 10 else (2 if top <= 20 else 5)
+    axis_top = max(step, -(-top // step) * step)      # округлення вгору до кроку
+    scale = _BAR_H / axis_top
+    width = _BAR_LEFT + len(labels) * _BAR_SLOT + 18
+    height = _BAR_TOP + _BAR_H + _BAR_BOTTOM
+    base = _BAR_TOP + _BAR_H
+    el: list[str] = []
+
+    # --- сітка з підписами по Oy ---
+    for v in range(0, axis_top + 1, step):
+        y = round(base - v * scale, 1)
+        el.append(
+            f'<line x1="{_BAR_LEFT}" y1="{y}" x2="{width - 12}" y2="{y}" '
+            'stroke="#e6e9ee" stroke-width="1"/>'
+        )
+        el.append(
+            f'<text x="{_BAR_LEFT - 7}" y="{y + 4}" font-size="10.5" '
+            f'fill="#6b7684" text-anchor="end">{v}</text>'
+        )
+
+    # --- стовпчики ---
+    for i, (lab, c) in enumerate(zip(labels, counts)):
+        cx = _BAR_LEFT + i * _BAR_SLOT + _BAR_SLOT / 2
+        h = round(c * scale, 1)
+        if c:
+            el.append(
+                f'<rect x="{round(cx - _BAR_W / 2, 1)}" y="{round(base - h, 1)}" '
+                f'width="{_BAR_W}" height="{h}" rx="2" fill="#2f6df6" '
+                'fill-opacity="0.75" stroke="#2f6df6" stroke-width="1"/>'
+            )
+            el.append(
+                f'<text x="{round(cx, 1)}" y="{round(base - h - 5, 1)}" '
+                'font-size="10.5" fill="#3a4553" text-anchor="middle">'
+                f'{c}</text>'
+            )
+        el.append(
+            f'<text x="{round(cx, 1)}" y="{base + 16}" font-size="11.5" '
+            f'fill="#3a4553" text-anchor="middle">{lab}</text>'
+        )
+
+    # --- осі ---
+    el.append(
+        f'<line x1="{_BAR_LEFT}" y1="{base}" x2="{width - 12}" y2="{base}" '
+        'stroke="#3a4553" stroke-width="1.6"/>'
+    )
+    el.append(
+        f'<line x1="{_BAR_LEFT}" y1="{_BAR_TOP - 8}" x2="{_BAR_LEFT}" y2="{base}" '
+        'stroke="#3a4553" stroke-width="1.6"/>'
+    )
+    if xlabel:
+        el.append(
+            f'<text x="{width - 12}" y="{base + 34}" font-size="11" '
+            f'fill="#6b7684" text-anchor="end">{xlabel}</text>'
+        )
+    if ylabel:
+        # Праворуч від осі й вище за верхню поділку: ліворуч стоять числа
+        # поділок, і підпис налазив би саме на найбільше з них.
+        el.append(
+            f'<text x="{_BAR_LEFT + 4}" y="{_BAR_TOP - 10}" font-size="11" '
+            f'fill="#6b7684">{ylabel}</text>'
+        )
+
+    return (
+        f'<svg viewBox="0 0 {width} {height}" width="{width}" '
+        'style="max-width:100%;height:auto;background:#fff;border-radius:8px" '
+        'xmlns="http://www.w3.org/2000/svg" role="img">'
+        + "".join(el)
+        + "</svg>"
+    )

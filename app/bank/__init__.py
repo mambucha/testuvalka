@@ -30,3 +30,4 @@ from app.bank import irrational_eq  # noqa: F401
 from app.bank import functions_thematic  # noqa: F401
 from app.bank import partial_derivatives  # noqa: F401
 from app.bank import trigonometry  # noqa: F401
+from app.bank import probability  # noqa: F401
