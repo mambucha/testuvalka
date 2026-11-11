@@ -143,14 +143,33 @@ def test_choice_is_reproducible_for_the_same_attempt():
             assert q1.statement == q2.statement, (key, i)
 
 
-def test_reissue_can_change_the_task_not_only_the_numbers():
-    """Вихід із тесту перевидає питання – разом з ним змінюється й задача."""
+def test_reissue_keeps_the_task_and_changes_only_the_numbers():
+    """Перевидання питання – не «перекид» жеребу.
+
+    Порушення доброчесності (вихід із вкладки, вставка) перевидає питання без
+    кари балами й до 15 разів – якби жереб при цьому перекидався, можна було б
+    безплатно виловлювати найлегшу задачу слота. Тож задача лишається та сама,
+    а нові числа перевидання дає, як і раніше.
+    """
+    same_numbers = 0
+    for key in KEYS:
+        for i in range(15):
+            for re_no in (1, 2):
+                q0, q1 = _build(key, i), _build(key, i, reissue=re_no)
+                assert q0.params["shape"] == q1.params["shape"], (key, i, re_no)
+            if _build(key, i).statement == _build(key, i, reissue=1).statement:
+                same_numbers += 1
+    # Числа все ж міняються: збігів умов небагато (рідкісні колізії варіантів).
+    assert same_numbers <= 30, same_numbers
+
+
+def test_second_attempt_rerolls_the_tasks():
+    """Нова СПРОБА – нова робота: attempt_no входить у сид жеребу."""
     changed = 0
-    for key, shapes in SLOTS.items():
-        if len(shapes) == 1:
-            continue
+    for key in KEYS:
         for i in range(20):
-            if _build(key, i, reissue=1).params["shape"] != _shape(key, i):
+            if _build(key, i).params["shape"] != \
+                    _build(key, i, attempt=2).params["shape"]:
                 changed += 1
     assert changed >= 60, changed
 

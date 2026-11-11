@@ -14,6 +14,7 @@ import hashlib
 import re as _re
 import hmac
 import random
+import threading
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -134,6 +135,19 @@ def template(key: str):
     return deco
 
 
+# Координати питання, що будується просто зараз. Потрібні шаблонам-слотам
+# (app/bank/thematic.py): вибір задачі в слоті має бути сталим між
+# перевиданнями, а rng, який отримує шаблон, уже засіяний разом із reissue.
+# threading.local, бо FastAPI виконує маршрути в пулі потоків.
+_BUILD = threading.local()
+
+
+def build_context() -> tuple | None:
+    """(secret, student_id, test_key, question_key, attempt_no, reissue)
+    питання, що будується зараз, або None поза build()."""
+    return getattr(_BUILD, "ctx", None)
+
+
 def build(
     question_key: str,
     secret: bytes,
@@ -145,7 +159,11 @@ def build(
     rng = random.Random(
         seed_for(secret, student_id, test_key, question_key, attempt_no, reissue)
     )
-    q = TEMPLATES[question_key](rng)
+    _BUILD.ctx = (secret, student_id, test_key, question_key, attempt_no, reissue)
+    try:
+        q = TEMPLATES[question_key](rng)
+    finally:
+        _BUILD.ctx = None
     q.key = question_key
     return q
 
