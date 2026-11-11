@@ -32,3 +32,4 @@ from app.bank import partial_derivatives  # noqa: F401
 from app.bank import trigonometry  # noqa: F401
 from app.bank import probability  # noqa: F401
 from app.bank import statistics  # noqa: F401
+from app.bank import thematic  # noqa: F401

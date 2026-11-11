@@ -1,9 +1,10 @@
 """Математична статистика (§15 Мерзляка, 11 клас).
 
-ТЕМА ПОКИ НЕ ВИКЛАДАЄТЬСЯ: жоден тест у tests.yaml на ці шаблони не
-посилається (це закріплено нижче окремою перевіркою). Шаблони лишаються
-покритими, щоб тему можна було відкрити одним рядком у tests.yaml, коли
-дійде черга, і щоб вони не згнили тим часом.
+Чотири з шести шаблонів питають у тематичному оцінюванні
+probability_thematic – через слоти (app/bank/thematic.py), а не прямо з банку;
+які саме, закріплено нижче окремою перевіркою. Два інші (st_ordered,
+st_population) не входять у жоден тест і лишаються покритими, щоб тему можна
+було розширити одним рядком і щоб вони не згнили тим часом.
 
 Кожен показник вибірки перераховуємо тут прямо за означеннями §15 з
 розгорнутого переліку даних, не чіпаючи службових функцій шаблону, – тож
@@ -17,6 +18,7 @@ import sympy as sp
 import yaml
 
 import engine
+from app.bank.thematic import SLOTS
 from app.config import SECRET
 
 # Літеральний "\n" замість переносу; \ne, \nu – валідні команди LaTeX.
@@ -62,22 +64,35 @@ def _mode(data):
     return modes[0]
 
 
-# --- тема поки що не підключена -----------------------------------------
+# --- де саме §15 запитують -----------------------------------------------
 
-def test_statistics_is_not_in_any_test_yet():
-    """§15 поки не викладається – шаблони не мають бути в жодному банку.
+# Вибіркові характеристики входять у тематичне оцінювання probability_thematic,
+# і то не прямо: там у банку стоять СЛОТИ, за кожним з яких кілька рівноцінних
+# задач (app/bank/thematic.py). Окремого тесту на §15 немає – тема мала, її
+# двох питань у підсумковій роботі досить.
+IN_THEMATIC = ["st_sample", "st_diagram", "st_frequency", "st_scores"]
 
-    Якщо тему відкриють, цей тест упаде першим і нагадає перенести сюди
-    перевірку складу тесту (як у test_probability).
-    """
+
+def test_statistics_is_examined_only_through_the_thematic_slots():
+    """Прямо в банку жодного тесту цих ключів нема – лише через слоти."""
     data = yaml.safe_load(pathlib.Path("tests.yaml").read_text(encoding="utf-8"))
     used = {key for entry in data for key in entry["bank"]}
     assert not (used & set(KEYS)), sorted(used & set(KEYS))
+    through_slots = {s for shapes in SLOTS.values() for s in shapes}
+    assert through_slots & set(KEYS) == set(IN_THEMATIC), \
+        sorted(through_slots & set(KEYS))
+
+
+def test_the_two_unused_templates_stay_covered():
+    """st_ordered має поле «так / ні», st_population питає не про вибіркову
+    характеристику, тож у слоти вони не пішли. Тести на них лишаються: тему
+    можна буде розширити одним рядком, і шаблони не згниють тим часом."""
+    assert set(KEYS) - set(IN_THEMATIC) == {"st_ordered", "st_population"}
 
 
 def test_templates_are_registered_anyway():
-    """Зареєстровані вони мусять лишатися: за цими ключами оцінюються спроби,
-    які могли бути створені, поки тема стояла в tests.yaml."""
+    """Зареєстровані мусять лишатися всі: за цими ключами оцінюються спроби,
+    які могли бути створені, поки тема стояла в tests.yaml прямо."""
     for key in KEYS:
         assert key in engine.TEMPLATES, key
 
