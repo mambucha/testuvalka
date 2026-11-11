@@ -41,13 +41,22 @@ from engine import TEMPLATES, Question, template
 # Слот -> рівноцінні шаблони, з яких він вибирає.
 SLOTS: dict[str, tuple[str, ...]] = {}
 
+# Надбавка часу на задачу в підсумковій роботі. Викладач переглянув тест і
+# сказав, що на комбінаторику й ймовірність часу замало, а на вибіркові
+# характеристики – нормально. Надбавку кладемо СЮДИ, а не в самі шаблони:
+# тести combinatorics і probability студенти вже здавали, і час у них
+# змінюватися не повинен.
+EXTRA = 45
+SLOW: dict[str, int] = {}
 
-def _slot(key: str, *candidates: str) -> None:
+
+def _slot(key: str, *candidates: str, bonus: int = 0) -> None:
     """Реєструє слот як звичайний шаблон, що пускає один із рівноцінних."""
 
     def build(rng: random.Random) -> Question:
         chosen = rng.choice(candidates)
         q = TEMPLATES[chosen](rng)
+        q.seconds += bonus
         # Ключем питання рушій поставить ключ слота (engine.build), тож
         # справжній шаблон лишаємо в параметрах: видно в журналі й в розборі,
         # яку саме задачу отримав студент.
@@ -56,6 +65,7 @@ def _slot(key: str, *candidates: str) -> None:
 
     template(key)(build)
     SLOTS[key] = candidates
+    SLOW[key] = bonus
 
 
 # --------------------------------------------------------------------------
@@ -63,21 +73,22 @@ def _slot(key: str, *candidates: str) -> None:
 # --------------------------------------------------------------------------
 
 # Правила суми та добутку в чистому вигляді: маршрути або меню.
-_slot("mt_rules", "cmb_sum_product", "cmb_menu")
+_slot("mt_rules", "cmb_sum_product", "cmb_menu", bonus=EXTRA)
 
 # Цифрові задачі: набір із нулем (нуль не може бути першим) або парність.
-_slot("mt_digits", "cmb_digits_zero", "cmb_digits_parity")
+_slot("mt_digits", "cmb_digits_zero", "cmb_digits_parity", bonus=EXTRA)
 
 # Ті самі правила, але рівень ••: кратність 2, 4, 5, 25 або паролі змінної
 # довжини (правило суми над степенями).
-_slot("mt_rules_hard", "cmb_divisible", "cmb_sequences")
+_slot("mt_rules_hard", "cmb_divisible", "cmb_sequences", bonus=EXTRA)
 
 # Самі формули сполук: $P_n = n!$ або пара «розміщення проти комбінацій».
-_slot("mt_formulas", "cmb_permutations", "cmb_arrangements_vs_combinations")
+_slot("mt_formulas", "cmb_permutations", "cmb_arrangements_vs_combinations",
+      bonus=EXTRA)
 
 # Застосування $C_n^k$. Чотири кандидати, бо шаблонів на це найбільше.
 _slot("mt_choose", "cmb_team_with_fixed", "cmb_polygon", "cmb_exactly_k",
-      "cmb_two_lines")
+      "cmb_two_lines", bonus=EXTRA)
 
 # --------------------------------------------------------------------------
 # §14. Ймовірність – п'ять слотів
@@ -85,22 +96,22 @@ _slot("mt_choose", "cmb_team_with_fixed", "cmb_polygon", "cmb_exactly_k",
 
 # Саме означення $P = \frac{m}{n}$ на вибиранні одного предмета; тут же
 # достовірна й неможлива події, тобто межі 0 і 1.
-_slot("mt_classic", "pb_urn", "pb_cards")
+_slot("mt_classic", "pb_urn", "pb_cards", bonus=EXTRA)
 
 # Множина чисел $1..N$: просте / складене / одноцифрове або кратність.
-_slot("mt_numbers", "pb_number_kind", "pb_multiples")
+_slot("mt_numbers", "pb_number_kind", "pb_multiples", bonus=EXTRA)
 
 # Задачі, де рівноможливі результати спершу треба порахувати самому:
 # числа з даних цифр або забуті цифри коду.
-_slot("mt_count_then_chance", "pb_digits", "pb_code")
+_slot("mt_count_then_chance", "pb_digits", "pb_code", bonus=EXTRA)
 
 # Пара з групи: хлопець і дівчина або парність добутку та суми.
-_slot("mt_pair", "pb_pair_mixed", "pb_pair_parity")
+_slot("mt_pair", "pb_pair_mixed", "pb_pair_parity", bonus=EXTRA)
 
 # Ймовірність через сполуки й межі означення: усі одного виду, рівно a
 # одного виду, найменша кількість для $P = 1$, обернена задача.
 _slot("mt_combinations_chance", "pb_all_of_kind", "pb_exactly", "pb_guaranteed",
-      "pb_inverse")
+      "pb_inverse", bonus=EXTRA)
 
 # --------------------------------------------------------------------------
 # §15. Вибіркові характеристики – два слоти

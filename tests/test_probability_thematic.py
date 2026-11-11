@@ -21,7 +21,7 @@ import sympy as sp
 import yaml
 
 import engine
-from app.bank.thematic import SLOTS
+from app.bank.thematic import EXTRA, SLOTS, SLOW
 from app.config import SECRET
 
 TEST_KEY = "probability_thematic"
@@ -291,8 +291,26 @@ def test_statistics_slots_ask_for_the_characteristics_of_a_sample():
 def test_timings_calibrated():
     """Робота має вкладатися в пару, і час майже не залежить від жеребу."""
     totals = [sum(_build(key, i).seconds for key in KEYS) for i in range(40)]
-    assert 1700 <= min(totals) and max(totals) <= 2050, (min(totals), max(totals))
+    assert 2100 <= min(totals) and max(totals) <= 2400, (min(totals), max(totals))
     assert max(totals) - min(totals) <= 300, (min(totals), max(totals))
+
+
+def test_combinatorics_and_probability_got_extra_time():
+    """Викладач переглянув тест: на §12–§14 часу було замало, на §15 досить.
+
+    Надбавка живе в слоті, а не в шаблоні, – час окремих тестів combinatorics
+    і probability, які студенти вже здавали, лишається незмінним.
+    """
+    assert all(SLOW[key] == EXTRA for key in COMBINATORICS + PROBABILITY), SLOW
+    assert all(SLOW[key] == 0 for key in STATISTICS), SLOW
+    for key in KEYS:
+        for i in range(10):
+            q = _build(key, i)
+            # Скільки та сама задача триває поза підсумковою роботою.
+            plain = {engine.build(q.params["shape"], SECRET, f"учень|{j}",
+                                  "probability", 1, 0).seconds for j in range(5)}
+            assert q.seconds - SLOW[key] in plain, (key, q.params["shape"],
+                                                    q.seconds, plain)
 
 
 # --- безплатні бали -----------------------------------------------------
