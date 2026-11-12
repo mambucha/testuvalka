@@ -80,7 +80,10 @@ def test_slots_are_declared_as_planned():
     assert list(SLOTS) == KEYS
     assert len(KEYS) == len(set(KEYS)) == 12
     assert len(COMBINATORICS) == len(PROBABILITY) == 5 and len(STATISTICS) == 2
-    assert sum(len(v) for v in SLOTS.values()) == 28
+    # 27, не 28: cmb_two_lines викладач прибрав зі слота mt_choose – рівень ••,
+    # кому він випадав, тому було важче за той самий 1 бал.
+    assert sum(len(v) for v in SLOTS.values()) == 27
+    assert "cmb_two_lines" not in SLOTS["mt_choose"]
 
 
 def test_no_task_belongs_to_two_slots():
@@ -245,7 +248,9 @@ def test_carry_survives_the_slot():
             q = _build(key, i)
             if any(p.carry for p in q.parts):
                 with_carry.add(q.params["shape"])
-    assert len(with_carry) >= 17, sorted(with_carry)
+    # 16 із 27 кандидатів мають перенесення (було 17, поки в mt_choose
+    # стояв cmb_two_lines).
+    assert len(with_carry) >= 16, sorted(with_carry)
 
 
 def test_carry_still_grades_the_own_chain():
