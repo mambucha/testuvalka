@@ -33,3 +33,5 @@ from app.bank import trigonometry  # noqa: F401
 from app.bank import probability  # noqa: F401
 from app.bank import statistics  # noqa: F401
 from app.bank import thematic  # noqa: F401
+from app.bank import trig_equations  # noqa: F401
+from app.bank import trig_thematic  # noqa: F401
