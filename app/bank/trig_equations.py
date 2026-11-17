@@ -81,6 +81,11 @@ def _deg(n) -> str:
     return rf"{n}^\circ"
 
 
+def _kpi(k: int) -> str:
+    """k*pi у LaTeX: без одиниці перед pi."""
+    return r"\pi" if k == 1 else rf"{k}\pi"
+
+
 # --------------------------------------------------------------------------
 # п.13. Формули додавання
 # --------------------------------------------------------------------------
@@ -413,7 +418,7 @@ def _eq_simple(rng: random.Random) -> Question:
         head = rf"Розв'яжіть рівняння ${_TG}\,x = {sp.latex(b)}$ (п.16)."
         q1 = rf"1) Обчисліть $\operatorname{{arctg}}\left({sp.latex(b)}\right)$."
         q3 = (rf"3) Укажіть корінь рівняння з проміжку "
-              rf"$({k}\pi;\ {k + 1}\pi)$ – він там один.")
+              rf"$({_kpi(k)};\ {_kpi(k + 1)})$ – він там один.")
 
         def carry_interval(prev, _k=k):
             own = _honest_angle(prev.get("least"), 0, sp.pi, forbid=(least,))
@@ -628,7 +633,7 @@ def _eq_homogeneous(rng: random.Random) -> Question:
             + "\n" + rf"1) Чому дорівнює ${_TG}\,x$?"
             + "\n" + r"2) Укажіть найменший ДОДАТНИЙ корінь рівняння."
             + "\n" + rf"3) Укажіть корінь рівняння з проміжку "
-            rf"$({k}\pi;\ {k + 1}\pi)$ – він там один."
+            rf"$({_kpi(k)};\ {_kpi(k + 1)})$ – він там один."
             + "\n" + _HINT_ROOTS
         ),
         parts=[
