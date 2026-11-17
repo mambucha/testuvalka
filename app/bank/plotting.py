@@ -244,11 +244,16 @@ def _cy(t: float) -> float:
 
 
 def unit_circle(marked=None, pickable: bool = False,
-                show_labels: bool = True, radius_to=None) -> str:
+                show_labels: bool = True, radius_to=None,
+                marked_coords: str | None = None) -> str:
     """Тригонометричне коло.
 
     marked:    кути (num, den) у частках pi, які позначаємо червоною точкою
                з підписом P – для задач «прочитай координати точки».
+    marked_coords: готовий текстовий підпис координат позначеної точки,
+               наприклад «P(-√3/2; -1/2)». Малюється в кутку рисунка,
+               протилежному до чверті самої точки, щоб не накладатися ні на
+               підписи кутів, ні на радіус.
     pickable:  чи робити точки клікабельними. Тоді кожна дістає data-ins із
                записом кута для парсера, і фронтенд вписує його в поле за
                клацанням – так само, як це робить екранна клавіатура.
@@ -335,6 +340,21 @@ def unit_circle(marked=None, pickable: bool = False,
                 'fill="#6b7684" text-anchor="middle" pointer-events="none">'
                 f'{_label_plain(num, den)}</text>'
             )
+
+    # --- підпис координат позначеної точки (попросив викладач) ---
+    if marked_coords and marked:
+        num, den = marked[0]
+        t = math.pi * num / den
+        # Кут рисунка, протилежний до чверті точки: точка праворуч (cos >= 0)
+        # -> підпис ліворуч, точка вгорі (sin >= 0) -> підпис унизу.
+        left = math.cos(t) >= 0
+        x = 8 if left else _CIRCLE_SIZE - 8
+        y = _CIRCLE_SIZE - 10 if math.sin(t) >= 0 else 20
+        el.append(
+            f'<text x="{x}" y="{y}" font-size="13.5" fill="#d23f3f" '
+            f'font-weight="600" text-anchor="{"start" if left else "end"}" '
+            f'pointer-events="none">{marked_coords}</text>'
+        )
 
     return (
         f'<svg viewBox="0 0 {_CIRCLE_SIZE} {_CIRCLE_SIZE}" width="{_CIRCLE_SIZE}" '

@@ -146,7 +146,7 @@ def _addition(rng: random.Random) -> Question:
     return Question(
         key="tq_addition",
         statement=(
-            "Застосуйте формули додавання (п.13)."
+            "Застосуйте формули додавання."
             + "\n" + rf"1) Обчисліть ${expr1}$."
             + "\n" + rf"2) Обчисліть ${expr2}$."
             + "\n" + rf"3) Обчисліть ${f3name} {_deg(t3)}$ точно, розклавши "
@@ -227,7 +227,7 @@ def _double(rng: random.Random) -> Question:
     return Question(
         key="tq_double",
         statement=(
-            "Застосуйте формули подвійного аргументу (п.13)."
+            "Застосуйте формули подвійного аргументу."
             + "\n" + rf"1) Обчисліть $2 \sin {tex1} \cos {tex1}$."
             + "\n" + rf"2) Обчисліть ${expr2}$."
             + "\n" + rf"3) Відомо, що ${known}$. Знайдіть $\cos 2\alpha$, "
@@ -277,7 +277,7 @@ def _arc(rng: random.Random) -> Question:
     return Question(
         key="tq_arc",
         statement=(
-            "Обчисліть (п.15–16; нагадаємо: арккосинус лежить у $[0;\\ \\pi]$, "
+            "Обчисліть (нагадаємо: арккосинус лежить у $[0;\\ \\pi]$, "
             r"арксинус – у $\left[-\frac{\pi}{2};\ \frac{\pi}{2}\right]$, "
             r"арктангенс – у $\left(-\frac{\pi}{2};\ \frac{\pi}{2}\right)$)."
             + "\n" + rf"1) $\arccos\left({sp.latex(b_cos)}\right)$"
@@ -339,11 +339,13 @@ def _eq_cos(rng: random.Random) -> Question:
     return Question(
         key="tq_eq_cos",
         statement=(
-            rf"Розв'яжіть рівняння $\cos x = {sp.latex(b)}$ (п.15)."
+            rf"Розв'яжіть рівняння $\cos x = {sp.latex(b)}$."
             + "\n" + r"1) Укажіть МЕНШИЙ корінь із проміжку $[0;\ 2\pi)$: "
             "знайдіть відповідну точку на колі й клацніть по ній – кут "
-            "впишеться в перше поле (можна й набрати вручну)."
-            + "\n" + r"2) Укажіть більший корінь із проміжку $[0;\ 2\pi)$."
+            "впишеться в поле, де стоїть курсор (спочатку це перше поле; "
+            "можна й набрати вручну)."
+            + "\n" + r"2) Укажіть більший корінь із проміжку $[0;\ 2\pi)$ – "
+            "теж можна кліком: торкніться другого поля й клацніть точку."
             + "\n" + rf"3) Укажіть корінь рівняння з проміжку ${which}$."
             + "\n" + _HINT_ROOTS
         ),
@@ -399,7 +401,7 @@ def _eq_simple(rng: random.Random) -> Question:
         # збігалася б із ним – безплатний бал за переписане число умови).
         k = rng.choice([3, 5])
         roots = _sin_roots_on(b, k * sp.pi)
-        head = rf"Розв'яжіть рівняння $\sin x = {sp.latex(b)}$ (п.16)."
+        head = rf"Розв'яжіть рівняння $\sin x = {sp.latex(b)}$."
         q1 = rf"1) Обчисліть $\arcsin\left({sp.latex(b)}\right)$."
         q3 = (rf"3) Скільки коренів має рівняння на проміжку "
               rf"$[0;\ {k}\pi]$?")
@@ -415,7 +417,7 @@ def _eq_simple(rng: random.Random) -> Question:
         least = alpha if b > 0 else sp.pi + alpha
         k = rng.choice([1, 2, 3])
         on_interval = least + k * sp.pi if b > 0 else alpha + (k + 1) * sp.pi
-        head = rf"Розв'яжіть рівняння ${_TG}\,x = {sp.latex(b)}$ (п.16)."
+        head = rf"Розв'яжіть рівняння ${_TG}\,x = {sp.latex(b)}$."
         q1 = rf"1) Обчисліть $\operatorname{{arctg}}\left({sp.latex(b)}\right)$."
         q3 = (rf"3) Укажіть корінь рівняння з проміжку "
               rf"$({_kpi(k)};\ {_kpi(k + 1)})$ – він там один.")
@@ -554,7 +556,7 @@ def _eq_quadratic(rng: random.Random) -> Question:
         key="tq_eq_quadratic",
         statement=(
             rf"Розв'яжіть рівняння ${eq_tex} = 0$ заміною "
-            rf"$t = {fn_tex} x$ (п.17)."
+            rf"$t = {fn_tex} x$."
             + "\n" + r"1) Укажіть менший корінь квадратного рівняння."
             + "\n" + r"2) Укажіть більший корінь квадратного рівняння."
             + "\n" + rf"3) Скільки з цих значень $t$ дають корені рівняння "
@@ -626,7 +628,7 @@ def _eq_homogeneous(rng: random.Random) -> Question:
     return Question(
         key="tq_eq_homogeneous",
         statement=(
-            rf"Розв'яжіть рівняння ${eq_tex} = 0$ (п.17). Поділіть обидві "
+            rf"Розв'яжіть рівняння ${eq_tex} = 0$. Поділіть обидві "
             r"частини на $\cos x$ (це законно: якби $\cos x = 0$, то з "
             r"рівняння випливало б і $\sin x = 0$, а разом вони в нуль не "
             "обертаються)."

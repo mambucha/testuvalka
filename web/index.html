@@ -600,11 +600,13 @@ function kbdFraction(){
   inp.dispatchEvent(new Event("input"));
   state.lastInput = inp;
 }
-// Вибір кута на тригонометричному колі. Пишемо в ПЕРШЕ поле питання, а не в
-// останнє активне: саме це обіцяє умова, і так поведінка передбачувана.
-// Значення ЗАМІНЮємо, а не дописуємо – друге клацання виправляє перше.
+// Вибір кута на тригонометричному колі. Пишемо в АКТИВНЕ поле (те саме
+// правило, що в екранної клавіатури: останнє поле з фокусом, інакше перше).
+// Так у задачах із двома коренями (tq_eq_cos) другий корінь теж вводиться
+// кліком: торкнутися другого поля – і клацнути точку. Значення ЗАМІНЮємо,
+// а не дописуємо: повторне клацання з тим самим полем виправляє його.
 function circlePick(dot){
-  const inp = document.querySelector("#parts input");
+  const inp = kbdTarget();
   if (!inp){ return; }
   const svg = dot.ownerSVGElement;
   if (svg){ svg.querySelectorAll(".uc-dot.picked").forEach((d) => d.classList.remove("picked")); }

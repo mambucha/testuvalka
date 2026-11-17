@@ -268,7 +268,8 @@ def _circle_locate(rng: random.Random) -> Question:
             rf"Відомо, що ${known}$ і ${other}$, причому "
             r"$\alpha \in [0;\ 2\pi)$."
             + "\nЗнайдіть цю точку на колі й клацніть по ній – кут впишеться "
-            "в перше поле. Можна й просто набрати його вручну."
+            "в поле, де стоїть курсор (спочатку це перше поле). Можна й "
+            "просто набрати його вручну."
             + "\n" + r"1) Чому дорівнює кут $\alpha$?"
             + "\n" + rf"2) Чому дорівнює {ask2_tex}?"
             + "\n" + r"3) У якій чверті лежить кут $\alpha$?"
@@ -286,6 +287,12 @@ def _circle_locate(rng: random.Random) -> Question:
     )
 
 
+# Координати точок поза осями – для підпису на рисунку (див. нижче).
+_COORD_TEXT = {sp.Rational(1, 2): "1/2", -sp.Rational(1, 2): "-1/2",
+               sp.sqrt(2) / 2: "√2/2", -sp.sqrt(2) / 2: "-√2/2",
+               sp.sqrt(3) / 2: "√3/2", -sp.sqrt(3) / 2: "-√3/2"}
+
+
 @template("tr_circle_read")
 def _circle_read(rng: random.Random) -> Question:
     """РИСУНОК: точка позначена на колі, записати її функції.
@@ -293,6 +300,10 @@ def _circle_read(rng: random.Random) -> Question:
     Пряме означення заняття 9: косинус – абсциса, синус – ордината. Третім
     питаємо одне з чотирьох: тангенс, котангенс або координату симетричної
     точки.
+
+    Координати точки ПІДПИСАНІ на рисунку – попросив викладач. Перші два
+    пункти відтоді перевіряють саме означення (котра координата косинус,
+    а котра синус), третій – обчислення з них.
 
     Чергування потрібне не лише для різноманіття. Кутів поза осями всього
     дванадцять, тож без нього на шаблон вийшло б дванадцять наборів
@@ -330,7 +341,8 @@ def _circle_read(rng: random.Random) -> Question:
         key="tr_circle_read",
         statement=(
             r"На одиничному колі точка $P$ отримана поворотом точки "
-            r"$P_0(1;\ 0)$ на кут $\alpha$ (див. рисунок)."
+            r"$P_0(1;\ 0)$ на кут $\alpha$; її координати підписано на "
+            "рисунку."
             + "\n" + r"1) Чому дорівнює $\cos\alpha$?"
             + "\n" + r"2) Чому дорівнює $\sin\alpha$?"
             + "\n" + ask
@@ -343,7 +355,8 @@ def _circle_read(rng: random.Random) -> Question:
                  carry=_third_carry, carry_from=("cos", "sin")),
         ],
         seconds=180,
-        svg=unit_circle(marked=[(num, den)], radius_to=(num, den)),
+        svg=unit_circle(marked=[(num, den)], radius_to=(num, den),
+                        marked_coords=f"P({_COORD_TEXT[co]}; {_COORD_TEXT[si]})"),
         params={"num": num, "den": den, "kind": kind},
     )
 
