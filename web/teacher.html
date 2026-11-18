@@ -27,6 +27,11 @@
   table { width:100%; border-collapse:collapse; margin-top:16px; font-size:.9rem; }
   th, td { text-align:left; padding:7px 9px; border-bottom:1px solid var(--line); white-space:nowrap; }
   th { color:var(--muted); font-weight:600; }
+  /* сортування кліком по заголовку */
+  #tbl th[data-sort] { cursor:pointer; user-select:none; }
+  #tbl th[data-sort]:hover { color:var(--ink); }
+  #tbl th.sorted { color:var(--accent); }
+  #tbl th .arrow { display:inline-block; width:1em; font-size:.8em; }
   tbody tr.j { cursor:pointer; }
   tbody tr.j:hover { background:#eef3ff; }
   tr.flagged { background:#fdf0f0; }
@@ -71,10 +76,15 @@
 
   <div class="tablebox"><table id="tbl" style="display:none">
     <thead><tr>
-      <th>Група</th><th>Прізвище</th><th>Сп.</th><th>Статус</th><th>Бал</th>
-      <th>%</th><th>Дата здачі</th><th>Вставок</th><th>Копіювань</th><th>Перемикань вкладки</th>
-      <th>Мін. с/пункт</th><th>Сер. до вводу, мс</th>
-      <th>Швидких прав.</th><th>Автомат.</th><th>Прапорці</th>
+      <th data-sort="group">Група</th><th data-sort="full_name">Прізвище</th>
+      <th data-sort="attempt_no">Сп.</th><th data-sort="status">Статус</th>
+      <th data-sort="score">Бал</th><th data-sort="percent">%</th>
+      <th data-sort="finished_at">Дата здачі</th><th data-sort="paste_count">Вставок</th>
+      <th data-sort="copy_count">Копіювань</th><th data-sort="blur_count">Перемикань вкладки</th>
+      <th data-sort="min_seconds_per_question">Мін. с/пункт</th>
+      <th data-sort="avg_first_input_ms">Сер. до вводу, мс</th>
+      <th data-sort="fast_correct">Швидких прав.</th><th data-sort="webdriver">Автомат.</th>
+      <th data-sort="flags">Прапорці</th>
     </tr></thead>
     <tbody></tbody>
   </table></div>
@@ -114,7 +124,78 @@ async function load(){
   const data = await r.json().catch(()=>({}));
   if (!r.ok){ $("err").textContent = data.detail || "Помилка доступу."; $("tbl").style.display="none"; return; }
 
-  const rows = data.attempts || [];
+  ROWS = data.attempts || [];
+  // Новий тест – порядок знову серверний (спершу спроби з прапорцями).
+  SORT = { key: null, dir: 1 };
+  render();
+  $("tbl").style.display = ROWS.length ? "" : "none";
+  if (!ROWS.length) $("err").textContent = "Спроб не знайдено.";
+
+  const q = `test_key=${encodeURIComponent(key)}&token=${encodeURIComponent(token)}`;
+  const xlsx = $("xlsx"); xlsx.href = `/api/teacher/results_xlsx?${q}`; xlsx.style.display = "inline-block";
+  const csv = $("csv"); csv.href = `/api/teacher/results?${q}`; csv.style.display = "inline-block";
+}
+
+// --- сортування ------------------------------------------------------------
+// Усе в браузері: сервер віддає спроби разом, тож перепитувати його не треба.
+// Порядок за замовчуванням – серверний: спершу спроби з прапорцями.
+let ROWS = [];
+let SORT = { key: null, dir: 1 };
+
+// Перший клік по цих колонках сортує ЗА СПАДАННЯМ: свіжі здачі, найбільше
+// вставок чи перемикань – це те, що викладач шукає насамперед. Решта
+// (група, прізвище, статус) – за абеткою.
+const DESC_FIRST = new Set(["finished_at", "score", "percent", "paste_count",
+  "copy_count", "blur_count", "fast_correct", "webdriver", "flags", "attempt_no"]);
+
+function sortValue(a, key){
+  const v = a[key];
+  if (key === "flags") return (v || []).length;
+  if (key === "webdriver") return v ? 1 : 0;
+  return v;
+}
+
+// Порожні значення (незавершена спроба без дати, анульована без балу) завжди
+// внизу – в обидва боки сортування, щоб не заважали.
+function isEmpty(v){ return v === null || v === undefined || v === ""; }
+
+function compareRows(a, b){
+  const va = sortValue(a, SORT.key), vb = sortValue(b, SORT.key);
+  const ea = isEmpty(va), eb = isEmpty(vb);
+  if (ea || eb) return ea === eb ? 0 : (ea ? 1 : -1);
+  let c;
+  if (typeof va === "number" && typeof vb === "number") c = va - vb;
+  // Дата «РРРР-ММ-ДД ГГ:ХХ:СС» – рядкове порівняння дає хронологію.
+  else if (SORT.key === "finished_at") c = va < vb ? -1 : (va > vb ? 1 : 0);
+  else c = String(va).localeCompare(String(vb), "uk");
+  if (c === 0){   // рівні – стабільно за групою й прізвищем
+    c = String(a.group).localeCompare(String(b.group), "uk")
+      || String(a.full_name).localeCompare(String(b.full_name), "uk");
+    return c;
+  }
+  return c * SORT.dir;
+}
+
+function sortBy(key){
+  if (SORT.key === key) SORT.dir = -SORT.dir;
+  else SORT = { key, dir: DESC_FIRST.has(key) ? -1 : 1 };
+  render();
+}
+
+function paintHeaders(){
+  document.querySelectorAll("#tbl th[data-sort]").forEach((th) => {
+    let arrow = th.querySelector(".arrow");
+    if (!arrow){ arrow = document.createElement("span"); arrow.className = "arrow"; th.appendChild(arrow); }
+    const on = th.dataset.sort === SORT.key;
+    th.classList.toggle("sorted", on);
+    arrow.textContent = on ? (SORT.dir < 0 ? "▼" : "▲") : "";
+    th.title = "клікніть, щоб відсортувати";
+  });
+}
+
+function render(){
+  const rows = SORT.key ? ROWS.slice().sort(compareRows) : ROWS;
+  paintHeaders();
   const tb = $("tbl").querySelector("tbody");
   tb.innerHTML = "";
   for (const a of rows){
@@ -140,13 +221,11 @@ async function load(){
     fl.textContent = (a.flags||[]).join(", "); tr.appendChild(fl);
     tb.appendChild(tr);
   }
-  $("tbl").style.display = rows.length ? "" : "none";
-  if (!rows.length) $("err").textContent = "Спроб не знайдено.";
-
-  const q = `test_key=${encodeURIComponent(key)}&token=${encodeURIComponent(token)}`;
-  const xlsx = $("xlsx"); xlsx.href = `/api/teacher/results_xlsx?${q}`; xlsx.style.display = "inline-block";
-  const csv = $("csv"); csv.href = `/api/teacher/results?${q}`; csv.style.display = "inline-block";
 }
+
+document.querySelectorAll("#tbl th[data-sort]").forEach((th) => {
+  th.addEventListener("click", () => sortBy(th.dataset.sort));
+});
 
 async function loadDetail(attemptId){
   const box = $("detail");
